@@ -36,9 +36,7 @@ async function runSorald(
     const performedRepairs = Array.from(keyToSpecs.entries()).flatMap(
       async function (subArray) {
         const [ruleKey, violationSpecs] = subArray;
-        core.info(
-          `Repairing violations of rule ${ruleKey}: ${violationSpecs}`
-        );
+        core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
         const statsFile = `${ruleKey}.json`;
         const repairs = await sorald.repair(
           jarDstPath,
