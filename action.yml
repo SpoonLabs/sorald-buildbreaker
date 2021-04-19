@@ -1,11 +1,14 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Sorald Buildbreaker'
+description: 'Run Sorald and break the build if there are any repairable violations'
 inputs:
-  milliseconds: # change this
+  source:
+    description: 'Path to the root source code directory to analyze'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    default: '.'
+  sorald-jar-url:
+    description: 'URL to a Sorald JAR-file'
+    required: true
+    default: 'https://oss.sonatype.org/content/repositories/snapshots/se/kth/castor/sorald/0.1.0-SNAPSHOT/sorald-0.1.0-20210413.095022-2-jar-with-dependencies.jar'
 runs:
   using: 'node12'
   main: 'dist/index.js'
