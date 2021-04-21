@@ -13,13 +13,10 @@ async function createTempdir(): Promise<string> {
   );
 }
 
-async function createFile(
-  path: fs.PathLike,
-  content: string
-): Promise<FileHandle> {
+async function createFile(path: fs.PathLike, content: string): Promise<void> {
   const file = await fs.promises.open(path, 'w');
   await file.write(content);
-  return file;
+  await file.close();
 }
 
 async function execWithStdoutCap(
@@ -53,7 +50,7 @@ test('add empty file', async () => {
   // arrange
   const tmpdir = await createTempdir();
   const filename = 'file.txt';
-  createFile(path.join(tmpdir, filename), '');
+  await createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
 
   // act
@@ -69,7 +66,7 @@ test('commit empty file', async () => {
   // arrange
   const tmpdir = await createTempdir();
   const filename = 'file.txt';
-  createFile(path.join(tmpdir, filename), '');
+  await createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
   await repo.add(filename);
 
@@ -85,4 +82,29 @@ test('commit empty file', async () => {
   );
   expect(stdout).toContain(commitMessage);
   expect(stdout).toContain(filename);
+});
+
+test('restore rolls back change', async () => {
+  // arrange
+  const tmpdir = await createTempdir();
+  const filename = 'file.txt';
+  const filepath = path.join(tmpdir, filename);
+  await createFile(filepath, '');
+
+  const repo = await git.init(tmpdir);
+  await repo.add(filename);
+  await repo.commit('Initial commit');
+  await (await fs.promises.open(filepath, 'w')).write('some data');
+
+  await expect(
+    execWithStdoutCap('git', ['status', '--porcelain'], tmpdir)
+  ).resolves.toContain(`M ${filename}`);
+
+  // act
+  await repo.restore();
+
+  // assert
+  await expect(
+    execWithStdoutCap('git', ['status', '--porcelain'], tmpdir)
+  ).resolves.toBe('');
 });
