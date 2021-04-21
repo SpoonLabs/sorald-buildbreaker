@@ -81,7 +81,7 @@ async function run() {
     }
 }
 run();
-
+//# sourceMappingURL=main.js.map
 
 /***/ }),
 
@@ -183,7 +183,7 @@ function parseRepairedViolations(repairData) {
         }
     }
 }
-
+//# sourceMappingURL=sorald.js.map
 
 /***/ }),
 
@@ -383,6 +383,7 @@ exports.getInput = getInput;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
+    process.stdout.write(os.EOL);
     command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
