@@ -9,22 +9,25 @@ export class Repo {
   }
 
   async restore(): Promise<void> {
-    try {
-      await exec('git', ['restore', '.'], {
-        cwd: this.targetDirectory.toString()
-      });
-    } catch (e) {
-      throw new Error(e.stderr.toString());
-    }
+    this.gitExec(['restore', '.']);
   }
 
   async add(fileOrDirectory: PathLike): Promise<void> {
+    await this.gitExec(['add', fileOrDirectory.toString()]);
+  }
+
+  async commit(message: string): Promise<void> {
+    await this.gitExec(['commit', '-m', message]);
+  }
+
+  private async gitExec(args: string[]): Promise<void> {
     try {
-      await exec('git', ['add', fileOrDirectory.toString()], {
+      await exec('git', args, {
         cwd: this.targetDirectory.toString()
       });
     } catch (e) {
-      throw new Error(e.stderr.toString());
+      // perform error handling
+      throw e;
     }
   }
 }
