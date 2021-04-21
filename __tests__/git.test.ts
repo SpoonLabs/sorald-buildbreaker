@@ -5,7 +5,6 @@ import * as path from 'path';
 import {exec} from '@actions/exec';
 
 import * as git from '../src/git';
-import {FileHandle} from 'fs/promises';
 
 async function createTempdir(): Promise<string> {
   return fs.promises.mkdtemp(
