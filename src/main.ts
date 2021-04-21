@@ -7,7 +7,7 @@ import * as stream from 'stream';
 
 import * as sorald from './sorald';
 
-import * as git from './git'
+import * as git from './git';
 
 const pipeline = promisify(stream.pipeline);
 
@@ -20,7 +20,7 @@ async function runSorald(
   soraldJarUrl: string
 ): Promise<string[]> {
   const jarDstPath = 'sorald.jar';
-  const repo = new git.Repo(source)
+  const repo = new git.Repo(source);
 
   core.info(`Downloading Sorald jar to ${jarDstPath}`);
   await download(soraldJarUrl, jarDstPath);
@@ -47,7 +47,7 @@ async function runSorald(
           statsFile,
           violationSpecs
         );
-        repo.restore()
+        repo.restore();
         return repairs;
       }
     );

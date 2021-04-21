@@ -16,7 +16,19 @@ class Repo {
     }
     async restore() {
         try {
-            await exec_1.exec('git', ['restore', '.'], { cwd: this.targetDirectory.toString() });
+            await exec_1.exec('git', ['restore', '.'], {
+                cwd: this.targetDirectory.toString()
+            });
+        }
+        catch (e) {
+            throw new Error(e.stderr.toString());
+        }
+    }
+    async add(fileOrDirectory) {
+        try {
+            await exec_1.exec('git', ['add', fileOrDirectory.toString()], {
+                cwd: this.targetDirectory.toString()
+            });
         }
         catch (e) {
             throw new Error(e.stderr.toString());

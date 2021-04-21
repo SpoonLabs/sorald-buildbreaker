@@ -2,7 +2,7 @@ import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
 
 export class Repo {
-  private targetDirectory: PathLike
+  private targetDirectory: PathLike;
 
   constructor(targetDirectory: PathLike) {
     this.targetDirectory = targetDirectory;
@@ -10,7 +10,19 @@ export class Repo {
 
   async restore(): Promise<void> {
     try {
-      await exec('git', ['restore', '.'], {cwd: this.targetDirectory.toString()});
+      await exec('git', ['restore', '.'], {
+        cwd: this.targetDirectory.toString()
+      });
+    } catch (e) {
+      throw new Error(e.stderr.toString());
+    }
+  }
+
+  async add(fileOrDirectory: PathLike): Promise<void> {
+    try {
+      await exec('git', ['add', fileOrDirectory.toString()], {
+        cwd: this.targetDirectory.toString()
+      });
     } catch (e) {
       throw new Error(e.stderr.toString());
     }
@@ -23,6 +35,5 @@ export async function init(repoRoot: PathLike): Promise<Repo> {
   } catch (e) {
     throw new Error(e.stderr.toString());
   }
-  return new Repo(repoRoot)
+  return new Repo(repoRoot);
 }
-
