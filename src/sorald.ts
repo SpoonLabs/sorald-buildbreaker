@@ -87,14 +87,6 @@ export async function repair(
   return parseRepairedViolations(repairData);
 }
 
-export async function restore(source: PathLike): Promise<void> {
-  try {
-    await exec('git', ['restore', '.'], {cwd: source.toString()});
-  } catch (e) {
-    throw new Error(e.stderr.toString());
-  }
-}
-
 function parseRepairedViolations(repairData: RepairData): string[] {
   const ruleRepairs = repairData.repairs;
 
