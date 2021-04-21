@@ -15,6 +15,10 @@ jobs:
           npm install
       - run: |
           npm run all
+      - name: Upload coverage report to Codecov
+        uses: 967e2b38a85a62bd61be5529ada27ebc109948c2 # v1.4.3
+        with:
+          fail_ci_if_error: true
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
