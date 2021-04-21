@@ -2,6 +2,42 @@ require('./sourcemap-register.js');module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 3374:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.init = exports.Repo = void 0;
+const exec_1 = __webpack_require__(1514);
+class Repo {
+    constructor(targetDirectory) {
+        this.targetDirectory = targetDirectory;
+    }
+    async restore() {
+        try {
+            await exec_1.exec('git', ['restore', '.'], { cwd: this.targetDirectory.toString() });
+        }
+        catch (e) {
+            throw new Error(e.stderr.toString());
+        }
+    }
+}
+exports.Repo = Repo;
+async function init(repoRoot) {
+    try {
+        await exec_1.exec('git', ['init'], { cwd: repoRoot.toString() });
+    }
+    catch (e) {
+        throw new Error(e.stderr.toString());
+    }
+    return new Repo(repoRoot);
+}
+exports.init = init;
+//# sourceMappingURL=git.js.map
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -36,12 +72,14 @@ const got_1 = __importDefault(__webpack_require__(3061));
 const util_1 = __webpack_require__(1669);
 const stream = __importStar(__webpack_require__(2413));
 const sorald = __importStar(__webpack_require__(4111));
+const git = __importStar(__webpack_require__(3374));
 const pipeline = util_1.promisify(stream.pipeline);
 async function download(url, dst) {
     return pipeline(got_1.default.stream(url), fs.createWriteStream(dst));
 }
 async function runSorald(source, soraldJarUrl) {
     const jarDstPath = 'sorald.jar';
+    const repo = new git.Repo(source);
     core.info(`Downloading Sorald jar to ${jarDstPath}`);
     await download(soraldJarUrl, jarDstPath);
     core.info(`Mining rule violations at ${source}`);
@@ -54,7 +92,7 @@ async function runSorald(source, soraldJarUrl) {
             core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
             const statsFile = `${ruleKey}.json`;
             const repairs = await sorald.repair(jarDstPath, source, statsFile, violationSpecs);
-            sorald.restore(source);
+            repo.restore();
             return repairs;
         });
         return (await Promise.all(performedRepairs)).flatMap(e => e);
@@ -110,7 +148,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.restore = exports.repair = exports.mine = void 0;
+exports.repair = exports.mine = void 0;
 const exec_1 = __webpack_require__(1514);
 const fs = __importStar(__webpack_require__(5747));
 async function mine(soraldJar, source, statsFile) {
@@ -158,15 +196,6 @@ async function repair(soraldJar, source, statsFile, violationSpecs) {
     return parseRepairedViolations(repairData);
 }
 exports.repair = repair;
-async function restore(source) {
-    try {
-        await exec_1.exec('git', ['restore', '.'], { cwd: source.toString() });
-    }
-    catch (e) {
-        throw new Error(e.stderr.toString());
-    }
-}
-exports.restore = restore;
 function parseRepairedViolations(repairData) {
     const ruleRepairs = repairData.repairs;
     if (!ruleRepairs) {
