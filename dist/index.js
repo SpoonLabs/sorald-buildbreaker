@@ -24,6 +24,11 @@ class Repo {
     async commit(message) {
         await this.gitExec(['commit', '-m', message]);
     }
+    /**
+     * Perform a contextless diff of the entire repo.
+     *
+     * @returns promise with the output on stdout.
+     */
     async diff() {
         return this.gitExec(['diff', '-U0']);
     }
@@ -32,7 +37,7 @@ class Repo {
      */
     async gitExec(args) {
         try {
-            return process_utils_1.execWithStdoutCapture('git', args, this.targetDirectory);
+            return process_utils_1.execWithStdoutCap('git', args, this.targetDirectory);
         }
         catch (e) {
             // perform error handling
@@ -146,12 +151,17 @@ run();
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.execWithStdoutCapture = void 0;
+exports.execWithStdoutCap = void 0;
 const exec_1 = __webpack_require__(1514);
 /**
  * Run actions/exec.exec and return the output from stdout.
+ *
+ * @param cmd command to execute.
+ * @param args arguments for the command.
+ * @param cwd working directory to execute the command in.
+ * @returns promise with the output from stdout.
  */
-async function execWithStdoutCapture(cmd, args, cwd) {
+async function execWithStdoutCap(cmd, args, cwd) {
     let out = '';
     const options = {
         listeners: {
@@ -164,7 +174,7 @@ async function execWithStdoutCapture(cmd, args, cwd) {
     await exec_1.exec(cmd, args, options);
     return out;
 }
-exports.execWithStdoutCapture = execWithStdoutCapture;
+exports.execWithStdoutCap = execWithStdoutCap;
 //# sourceMappingURL=process-utils.js.map
 
 /***/ }),
