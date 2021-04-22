@@ -74,10 +74,7 @@ test('restore rolls back change', async () => {
   const repo = await git.init(tmpdir);
   await repo.add(filename);
   await repo.commit('Initial commit');
-
-  const file = await fs.promises.open(filepath, 'w');
-  await file.write('some data');
-  await file.close();
+  await (await fs.promises.open(filepath, 'w')).write('some data');
 
   await expect(
     execWithStdoutCap('git', ['status', '--porcelain'], tmpdir)
