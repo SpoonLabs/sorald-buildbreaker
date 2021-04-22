@@ -11,7 +11,7 @@ async function createTempdir(): Promise<string> {
   );
 }
 
-async function writeToFile(path: fs.PathLike, content: string): Promise<void> {
+async function createFile(path: fs.PathLike, content: string): Promise<void> {
   const file = await fs.promises.open(path, 'w');
   await file.write(content);
   await file.close();
@@ -30,7 +30,7 @@ test('add empty file', async () => {
   // arrange
   const tmpdir = await createTempdir();
   const filename = 'file.txt';
-  await writeToFile(path.join(tmpdir, filename), '');
+  await createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
 
   // act
@@ -46,7 +46,7 @@ test('commit empty file', async () => {
   // arrange
   const tmpdir = await createTempdir();
   const filename = 'file.txt';
-  await writeToFile(path.join(tmpdir, filename), '');
+  await createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
   await repo.add(filename);
 
@@ -69,7 +69,7 @@ test('restore rolls back change', async () => {
   const tmpdir = await createTempdir();
   const filename = 'file.txt';
   const filepath = path.join(tmpdir, filename);
-  await writeToFile(filepath, '');
+  await createFile(filepath, '');
 
   const repo = await git.init(tmpdir);
   await repo.add(filename);
@@ -99,7 +99,7 @@ test('diff returns contextless diff', async () => {
   const filepath = path.join(tmpdir, filename);
   const initialContent = `Hello, there!
 `; // note that this trailing newline is important for git to consider the edit as a pure addition
-  await writeToFile(filepath, initialContent);
+  await createFile(filepath, initialContent);
 
   const repo = await git.init(tmpdir);
   await repo.add(filename);
@@ -107,7 +107,7 @@ test('diff returns contextless diff', async () => {
 
   const addedContent = 'what is up?';
   const changedContent = `${initialContent}${addedContent}`;
-  await writeToFile(filepath, changedContent);
+  await createFile(filepath, changedContent);
 
   // act
   const diff = repo.diff();
