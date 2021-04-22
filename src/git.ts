@@ -1,7 +1,7 @@
 import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
 
-import {execWithStdoutCapture} from './process-utils';
+import {execWithStdoutCap} from './process-utils';
 
 export class Repo {
   private targetDirectory: PathLike;
@@ -36,7 +36,7 @@ export class Repo {
    */
   private async gitExec(args: string[]): Promise<string> {
     try {
-      return execWithStdoutCapture('git', args, this.targetDirectory);
+      return execWithStdoutCap('git', args, this.targetDirectory);
     } catch (e) {
       // perform error handling
       throw e;

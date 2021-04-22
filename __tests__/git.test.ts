@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as git from '../src/git';
-import {execWithStdoutCapture} from '../src/process-utils';
+import {execWithStdoutCap} from '../src/process-utils';
 
 async function createTempdir(): Promise<string> {
   return fs.promises.mkdtemp(
@@ -37,7 +37,7 @@ test('add empty file', async () => {
   await repo.add(filename);
 
   // assert
-  const stdout = await execWithStdoutCapture('git', ['status'], tmpdir);
+  const stdout = await execWithStdoutCap('git', ['status'], tmpdir);
   expect(stdout).toContain('Changes to be committed:');
   expect(stdout).toContain(filename);
 });
@@ -55,7 +55,7 @@ test('commit empty file', async () => {
   await repo.commit(commitMessage);
 
   // assert
-  const stdout = await execWithStdoutCapture(
+  const stdout = await execWithStdoutCap(
     'git',
     ['show', 'HEAD', '--stat'],
     tmpdir
@@ -80,7 +80,7 @@ test('restore rolls back change', async () => {
   await file.close();
 
   await expect(
-    execWithStdoutCapture('git', ['status', '--porcelain'], tmpdir)
+    execWithStdoutCap('git', ['status', '--porcelain'], tmpdir)
   ).resolves.toContain(`M ${filename}`);
 
   // act
@@ -88,7 +88,7 @@ test('restore rolls back change', async () => {
 
   // assert
   await expect(
-    execWithStdoutCapture('git', ['status', '--porcelain'], tmpdir)
+    execWithStdoutCap('git', ['status', '--porcelain'], tmpdir)
   ).resolves.toBe('');
 });
 

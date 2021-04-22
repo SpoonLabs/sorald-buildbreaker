@@ -9,7 +9,7 @@ import {PathLike} from 'fs';
  * @param cwd working directory to execute the command in.
  * @returns promise with the output from stdout.
  */
-export async function execWithStdoutCapture(
+export async function execWithStdoutCap(
   cmd: string,
   args: string[],
   cwd: PathLike
