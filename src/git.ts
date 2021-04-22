@@ -22,6 +22,11 @@ export class Repo {
     await this.gitExec(['commit', '-m', message]);
   }
 
+  /**
+   * Perform a contextless diff of the entire repo.
+   *
+   * @returns promise with the output on stdout.
+   */
   async diff(): Promise<string> {
     return this.gitExec(['diff', '-U0']);
   }
