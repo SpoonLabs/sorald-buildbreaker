@@ -1,6 +1,8 @@
 import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
 
+import {execWithStdoutCap} from './process-utils';
+
 export class Repo {
   private targetDirectory: PathLike;
 
@@ -20,11 +22,21 @@ export class Repo {
     await this.gitExec(['commit', '-m', message]);
   }
 
-  private async gitExec(args: string[]): Promise<void> {
+  /**
+   * Perform a contextless diff of the entire repo.
+   *
+   * @returns promise with the output on stdout.
+   */
+  async diff(): Promise<string> {
+    return this.gitExec(['diff', '-U0']);
+  }
+
+  /**
+   * Execute the given command with Git and return the stdout output.
+   */
+  private async gitExec(args: string[]): Promise<string> {
     try {
-      await exec('git', args, {
-        cwd: this.targetDirectory.toString()
-      });
+      return execWithStdoutCap('git', args, this.targetDirectory);
     } catch (e) {
       // perform error handling
       throw e;

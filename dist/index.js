@@ -10,6 +10,7 @@ require('./sourcemap-register.js');module.exports =
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.init = exports.Repo = void 0;
 const exec_1 = __webpack_require__(1514);
+const process_utils_1 = __webpack_require__(7900);
 class Repo {
     constructor(targetDirectory) {
         this.targetDirectory = targetDirectory;
@@ -23,11 +24,20 @@ class Repo {
     async commit(message) {
         await this.gitExec(['commit', '-m', message]);
     }
+    /**
+     * Perform a contextless diff of the entire repo.
+     *
+     * @returns promise with the output on stdout.
+     */
+    async diff() {
+        return this.gitExec(['diff', '-U0']);
+    }
+    /**
+     * Execute the given command with Git and return the stdout output.
+     */
     async gitExec(args) {
         try {
-            await exec_1.exec('git', args, {
-                cwd: this.targetDirectory.toString()
-            });
+            return process_utils_1.execWithStdoutCap('git', args, this.targetDirectory);
         }
         catch (e) {
             // perform error handling
@@ -132,6 +142,40 @@ async function run() {
 }
 run();
 //# sourceMappingURL=main.js.map
+
+/***/ }),
+
+/***/ 7900:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.execWithStdoutCap = void 0;
+const exec_1 = __webpack_require__(1514);
+/**
+ * Run actions/exec.exec and return the output from stdout.
+ *
+ * @param cmd command to execute.
+ * @param args arguments for the command.
+ * @param cwd working directory to execute the command in.
+ * @returns promise with the output from stdout.
+ */
+async function execWithStdoutCap(cmd, args, cwd) {
+    let out = '';
+    const options = {
+        listeners: {
+            stdout: (data) => {
+                out += data.toString();
+            }
+        },
+        cwd: cwd.toString()
+    };
+    await exec_1.exec(cmd, args, options);
+    return out;
+}
+exports.execWithStdoutCap = execWithStdoutCap;
+//# sourceMappingURL=process-utils.js.map
 
 /***/ }),
 
