@@ -26,6 +26,14 @@ interface RepairData {
   repairs: RuleRepairData[];
 }
 
+/**
+ * Mine a directory with Sorald.
+ *
+ * @param soraldJar - Path to the Sorald jarfile
+ * @param source - Path to the root directory of the project to analyze
+ * @param statsFile - Path to output statistics to
+ * @returns A promise with a mapping (ruleKey -> array of rule violation specifiers)
+ */
 export async function mine(
   soraldJar: PathLike,
   source: PathLike,
@@ -59,6 +67,14 @@ export async function mine(
   return keyToSpecs;
 }
 
+/**
+ * Repair violations in a project.
+ *
+ * @param soraldJar - Path to the Sorald jarfile
+ * @param source - Path to the root directory of the project to analyze
+ * @param statsFile - Path to output statistics to
+ * @returns Promise with an array of repaired rule violations
+ */
 export async function repair(
   soraldJar: PathLike,
   source: PathLike,
