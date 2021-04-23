@@ -32,7 +32,7 @@ interface RepairData {
  * @param soraldJar - Path to the Sorald jarfile
  * @param source - Path to the root directory of the project to analyze
  * @param statsFile - Path to output statistics to
- * @returns A promise with a mapping (ruleKey -> array of rule violation specifiers)
+ * @returns A promise with a mapping (ruleKey, array of rule violation specifiers)
  */
 export async function mine(
   soraldJar: PathLike,
