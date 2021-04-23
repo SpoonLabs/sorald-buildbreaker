@@ -4,10 +4,10 @@ import {PathLike} from 'fs';
 /**
  * Run actions/exec.exec and return the output from stdout.
  *
- * @param cmd command to execute.
- * @param args arguments for the command.
- * @param cwd working directory to execute the command in.
- * @returns promise with the output from stdout.
+ * @param cmd - Command to execute
+ * @param args - Arguments for the command
+ * @param cwd - Working directory to execute the command in
+ * @returns Promise with the output from stdout
  */
 export async function execWithStdoutCap(
   cmd: string,

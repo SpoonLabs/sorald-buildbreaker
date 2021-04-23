@@ -1,5 +1,5 @@
 {
-    "plugins": ["jest", "@typescript-eslint"],
+    "plugins": ["jest", "@typescript-eslint", "eslint-plugin-tsdoc"],
     "extends": ["plugin:github/recommended"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -42,7 +42,8 @@
       "@typescript-eslint/require-array-sort-compare": "error",
       "@typescript-eslint/restrict-plus-operands": "error",
       "@typescript-eslint/type-annotation-spacing": "error",
-      "@typescript-eslint/unbound-method": "error"
+      "@typescript-eslint/unbound-method": "error",
+      "tsdoc/syntax": "error"
     },
     "env": {
       "node": true,
