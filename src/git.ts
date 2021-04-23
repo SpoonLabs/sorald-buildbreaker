@@ -45,7 +45,7 @@ export class Repo {
   /**
    * Perform a contextless diff of the entire repo.
    *
-   * @returns promise with the output on stdout.
+   * @returns Fulfills with the output from stdout upon success
    */
   async diff(): Promise<string> {
     return this.gitExec(['diff', '-U0']);
@@ -68,7 +68,7 @@ export class Repo {
  * Initialize a directory as a Git repository.
  *
  * @param repoRoot - A directory to form the root of the repository's worktree
- * @returns Promise with the initialized repository
+ * @returns Fulfills with an initialized repository upon success
  */
 export async function init(repoRoot: PathLike): Promise<Repo> {
   try {
