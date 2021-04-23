@@ -3,21 +3,41 @@ import {PathLike} from 'fs';
 
 import {execWithStdoutCap} from './process-utils';
 
+/**
+ * Wrapper class for acting on a Git repository with the Git binary.
+ */
 export class Repo {
   private targetDirectory: PathLike;
 
+  /**
+   * @param targetDirectory - Any directory within the worktree of the Git
+   *    repository to work with
+   */
   constructor(targetDirectory: PathLike) {
     this.targetDirectory = targetDirectory;
   }
 
+  /**
+   * Restore all modified files in the current.
+   */
   async restore(): Promise<void> {
     this.gitExec(['restore', '.']);
   }
 
+  /**
+   * Add a file.
+   *
+   * @param fileOrDirectory - The file to add
+   */
   async add(fileOrDirectory: PathLike): Promise<void> {
     await this.gitExec(['add', fileOrDirectory.toString()]);
   }
 
+  /**
+   * Commit the staging area.
+   *
+   * @param message - The commit message
+   */
   async commit(message: string): Promise<void> {
     await this.gitExec(['commit', '-m', message]);
   }
@@ -44,6 +64,12 @@ export class Repo {
   }
 }
 
+/**
+ * Initialize a directory as a Git repository.
+ *
+ * @param repoRoot - A directory to form the root of the repository's worktree
+ * @returns Promise with the initialized repository
+ */
 export async function init(repoRoot: PathLike): Promise<Repo> {
   try {
     await exec('git', ['init'], {cwd: repoRoot.toString()});
