@@ -17,6 +17,21 @@ async function createFile(path: fs.PathLike, content: string): Promise<void> {
   await file.close();
 }
 
+test('getWorktreeRoot returns correct directory when target is subdir', async () => {
+  // arrange
+  const tmpdir = await createTempdir();
+  await git.init(tmpdir);
+  const subdir = path.join(tmpdir, 'someSubDir');
+  await fs.promises.mkdir(subdir);
+
+  // act
+  const repo = new git.Repo(subdir);
+  const worktreeRoot = await repo.getWorktreeRoot();
+
+  // assert
+  expect(worktreeRoot).toBe(tmpdir);
+});
+
 test('init initializes directory with Git repo', async () => {
   const tmpdir = await createTempdir();
   await git.init(tmpdir);
