@@ -23,5 +23,5 @@ jobs:
         run: |
           git diff --exit-code || {
             git commit -am 'Update generated files'
-            git push
+            git push origin "HEAD:$GITHUB_HEAD_REF"
           }
