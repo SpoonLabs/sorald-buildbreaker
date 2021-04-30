@@ -46,10 +46,11 @@ class Repo {
     /**
      * Perform a contextless diff of the entire repo.
      *
+     * @param additionalArgs - Additional arguments
      * @returns Fulfills with the output from stdout upon success
      */
-    async diff() {
-        return this.gitExec(['diff', '-U0']);
+    async diff(...additionalArgs) {
+        return this.gitExec(['diff', '-U0'].concat(additionalArgs));
     }
     /**
      * Determine the worktree root of this repository.
