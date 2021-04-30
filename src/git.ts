@@ -64,10 +64,6 @@ export class Repo {
    * Execute the given command with Git and return the stdout output.
    */
   private async gitExec(args: string[]): Promise<string> {
-    if (args.length < 0) {
-      throw Error('hello');
-    }
-
     try {
       return execWithStdoutCap('git', args, this.targetDirectory);
     } catch (e) {
