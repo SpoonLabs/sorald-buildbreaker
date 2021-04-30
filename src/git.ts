@@ -45,10 +45,11 @@ export class Repo {
   /**
    * Perform a contextless diff of the entire repo.
    *
+   * @param additionalArgs - Additional arguments
    * @returns Fulfills with the output from stdout upon success
    */
-  async diff(): Promise<string> {
-    return this.gitExec(['diff', '-U0']);
+  async diff(...additionalArgs: string[]): Promise<string> {
+    return this.gitExec(['diff', '-U0'].concat(additionalArgs));
   }
 
   /**

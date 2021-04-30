@@ -134,3 +134,32 @@ test('diff returns contextless diff', async () => {
 +++ b/file.txt
 @@ -1,0 +2 @@ ${initialContent}+${addedContent}`);
 });
+
+test(`diff can handle HEAD~ as commitish argument`, async () => {
+  // arrange
+  const tmpdir = await createTempdir();
+  const filename = 'file.txt';
+  const filepath = path.join(tmpdir, filename);
+  const initialContent = `Hello, there!
+`; // note that this trailing newline is important for git to consider the edit as a pure addition
+  await createFile(filepath, initialContent);
+
+  const repo = await git.init(tmpdir);
+  await repo.add(filename);
+  await repo.commit('Initial commit');
+
+  const addedContent = 'what is up?';
+  const changedContent = `${initialContent}${addedContent}`;
+  await createFile(filepath, changedContent);
+  await repo.add(filename);
+  await repo.commit('Change some stuff');
+
+  // act
+  const diff = repo.diff('HEAD~');
+
+  // assert
+  await expect(diff).resolves.toContain(`
+--- a/file.txt
++++ b/file.txt
+@@ -1,0 +2 @@ ${initialContent}+${addedContent}`);
+});

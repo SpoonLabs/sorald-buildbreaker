@@ -46,13 +46,17 @@ class Repo {
     /**
      * Perform a contextless diff of the entire repo.
      *
+     * @param additionalArgs - Additional arguments
      * @returns Fulfills with the output from stdout upon success
      */
-    async diff() {
-        return this.gitExec(['diff', '-U0']);
+    async diff(...additionalArgs) {
+        return this.gitExec(['diff', '-U0'].concat(additionalArgs));
     }
     /**
      * Execute the given command with Git and return the stdout output.
+     *
+     * @param args - Arguments to the git binary
+     * @returns Resolves to the output from stdout
      */
     async gitExec(args) {
         try {
