@@ -54,9 +54,6 @@ export class Repo {
 
   /**
    * Execute the given command with Git and return the stdout output.
-   *
-   * @param args - Arguments to the git binary
-   * @returns Resolves to the output from stdout
    */
   private async gitExec(args: string[]): Promise<string> {
     try {
