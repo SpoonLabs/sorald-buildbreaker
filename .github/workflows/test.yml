@@ -24,6 +24,8 @@ jobs:
           git config --global user.email tester@spoonlabs.github.io
       - run: |
           npm run all
+      - name: Check generated files are up-to-date
+        run: git diff --exit-code
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@967e2b38a85a62bd61be5529ada27ebc109948c2 # v1.4.3
         with:
