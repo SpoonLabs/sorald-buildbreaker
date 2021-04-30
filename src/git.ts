@@ -54,7 +54,7 @@ export class Repo {
   /**
    * Determine the worktree root of this repository.
    *
-   * @returns The worktree root
+   * @returns Fulfills with the worktree root
    */
   async getWorktreeRoot(): Promise<PathLike> {
     return (await this.gitExec(['rev-parse', '--show-toplevel'])).trimEnd();
