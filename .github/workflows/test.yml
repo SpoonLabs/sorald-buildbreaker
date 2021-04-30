@@ -10,6 +10,10 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: ubuntu-latest
     steps:
+      - name: Upgrade npm
+        run: |
+          sudo apt update
+          sudo apt --only-upgrade install npm
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2 # required for Codecov to be able to identify the commit
