@@ -32,6 +32,19 @@ test('getWorktreeRoot returns correct directory when target is subdir', async ()
   expect(worktreeRoot).toBe(tmpdir);
 });
 
+test('getWorktreeRoot returns correct directory when target is root', async () => {
+  // arrange
+  const tmpdir = await createTempdir();
+  await git.init(tmpdir);
+
+  // act
+  const repo = new git.Repo(tmpdir);
+  const worktreeRoot = repo.getWorktreeRoot();
+
+  // assert
+  expect(worktreeRoot).resolves.toBe(tmpdir);
+});
+
 test('init initializes directory with Git repo', async () => {
   const tmpdir = await createTempdir();
   await git.init(tmpdir);
