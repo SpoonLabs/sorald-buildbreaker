@@ -53,6 +53,14 @@ class Repo {
         return this.gitExec(['diff', '-U0'].concat(additionalArgs));
     }
     /**
+     * Determine the worktree root of this repository.
+     *
+     * @returns Fulfills with the worktree root
+     */
+    async getWorktreeRoot() {
+        return (await this.gitExec(['rev-parse', '--show-toplevel'])).trimEnd();
+    }
+    /**
      * Execute the given command with Git and return the stdout output.
      */
     async gitExec(args) {
