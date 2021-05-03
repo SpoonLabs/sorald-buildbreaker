@@ -15,7 +15,7 @@ async function download(url: string, dst: PathLike): Promise<void> {
   return pipeline(got.stream(url), fs.createWriteStream(dst));
 }
 
-async function runSorald(
+export async function runSorald(
   source: PathLike,
   soraldJarUrl: string
 ): Promise<string[]> {
@@ -32,30 +32,26 @@ async function runSorald(
     'stats.json'
   );
 
+  let allRepairs: string[] = [];
   if (keyToSpecs.size > 0) {
     core.info('Found rule violations');
-
     core.info('Attempting repairs');
-    const performedRepairs = Array.from(keyToSpecs.entries()).flatMap(
-      async function (subArray) {
-        const [ruleKey, violationSpecs] = subArray;
-        core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-        const statsFile = `${ruleKey}.json`;
-        const repairs = await sorald.repair(
-          jarDstPath,
-          source,
-          statsFile,
-          violationSpecs
-        );
-        repo.restore();
-        return repairs;
-      }
-    );
-    return (await Promise.all(performedRepairs)).flatMap(e => e);
+    for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
+      core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
+      const statsFile = `${ruleKey}.json`;
+      const repairs = await sorald.repair(
+        jarDstPath,
+        source,
+        statsFile,
+        violationSpecs
+      );
+      await repo.restore();
+      allRepairs = allRepairs.concat(repairs);
+    }
   } else {
     core.info('No violations found');
-    return [];
   }
+  return allRepairs;
 }
 
 async function run(): Promise<void> {
