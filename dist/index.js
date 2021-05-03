@@ -195,6 +195,13 @@ const pipeline = util_1.promisify(stream.pipeline);
 async function download(url, dst) {
     return pipeline(got_1.default.stream(url), fs.createWriteStream(dst));
 }
+/**
+ * Run sorald and attempt to enact repairs.
+ *
+ * @param source - Path to the source directory
+ * @param soraldJarUrl - URL to download the Sorald JAR from
+ * @returns Fulfills to violation specifiers for repaired violations
+ */
 async function runSorald(source, soraldJarUrl) {
     const jarDstPath = 'sorald.jar';
     const repo = new git.Repo(source);

@@ -15,6 +15,13 @@ async function download(url: string, dst: PathLike): Promise<void> {
   return pipeline(got.stream(url), fs.createWriteStream(dst));
 }
 
+/**
+ * Run sorald and attempt to enact repairs.
+ *
+ * @param source - Path to the source directory
+ * @param soraldJarUrl - URL to download the Sorald JAR from
+ * @returns Fulfills to violation specifiers for repaired violations
+ */
 export async function runSorald(
   source: PathLike,
   soraldJarUrl: string
