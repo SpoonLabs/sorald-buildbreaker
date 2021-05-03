@@ -15,10 +15,7 @@ import {ClosedRange} from './ranges';
 const pipeline = promisify(stream.pipeline);
 
 async function download(url: string, dst: PathLike): Promise<void> {
-  const downloadStream = got.stream(url);
-  const writeStream = fs.createWriteStream(dst);
-  await pipeline(downloadStream, writeStream);
-  writeStream.end();
+  return pipeline(got.stream(url), fs.createWriteStream(dst));
 }
 
 /**
