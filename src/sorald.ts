@@ -136,3 +136,13 @@ export function parseAffectedLines(violationSpec: string): ClosedRange {
   const parts = violationSpec.split(path.delimiter);
   return {start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx])};
 }
+
+/**
+ * Parse the relative filepath from the rule violation.
+ *
+ * @param violationSpec - A violation specifier
+ * @returns Relative filepath to file containing the violation
+ */
+export function parseFilePath(violationSpec: string): string {
+  return violationSpec.split(path.delimiter)[1];
+}
