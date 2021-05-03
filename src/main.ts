@@ -31,7 +31,6 @@ export async function runSorald(
   soraldJarUrl: string,
   ratchetFrom?: string
 ): Promise<string[]> {
-  core.info(ratchetFrom === undefined ? 'hello' : 'byebye');
   const jarDstPath = 'sorald.jar';
   const repo = new git.Repo(source);
 
