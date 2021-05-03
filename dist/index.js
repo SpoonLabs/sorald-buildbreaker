@@ -185,6 +185,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runSorald = void 0;
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 const core = __importStar(__nccwpck_require__(2186));
 const got_1 = __importDefault(__nccwpck_require__(3061));
 const util_1 = __nccwpck_require__(1669);
@@ -215,7 +216,7 @@ async function runSorald(source, soraldJarUrl) {
         core.info('Attempting repairs');
         for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
             core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-            const statsFile = `${ruleKey}.json`;
+            const statsFile = path.join(source.toString(), `${ruleKey}.json`);
             const repairs = await sorald.repair(jarDstPath, source, statsFile, violationSpecs);
             await repo.restore();
             allRepairs = allRepairs.concat(repairs);

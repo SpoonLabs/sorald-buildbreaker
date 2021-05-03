@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as core from '@actions/core';
 import {PathLike} from 'fs';
 import got from 'got';
@@ -45,7 +46,7 @@ export async function runSorald(
     core.info('Attempting repairs');
     for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
       core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-      const statsFile = `${ruleKey}.json`;
+      const statsFile = path.join(source.toString(), `${ruleKey}.json`);
       const repairs = await sorald.repair(
         jarDstPath,
         source,
