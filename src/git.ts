@@ -1,5 +1,8 @@
+import * as os from 'os';
+import * as path from 'path';
 import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
+import {ClosedRange} from './ranges';
 
 import {execWithStdoutCap} from './process-utils';
 
@@ -87,4 +90,45 @@ export async function init(repoRoot: PathLike): Promise<Repo> {
     throw new Error(e.stderr.toString());
   }
   return new Repo(repoRoot);
+}
+
+/**
+ * Parse the changed lines from a context-less diff (i.e. a diff computed with
+ * -U0).
+ *
+ *  @param diff - A context-less diff
+ *  @param worktreeRoot - Absolute path to the root of the repository worktree
+ *  in which the diff was computed
+ *  @returns A mapping (filepath, array of disjoint line ranges)
+ */
+export function parseChangedLines(
+  diff: string,
+  worktreeRoot: PathLike
+): Map<PathLike, ClosedRange[]> {
+  let currentFile: string | null = null;
+  let currentRanges: ClosedRange[] = [];
+  const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
+  const filePathPrefix = '+++ b/';
+  const chunkHeaderSep = '@@';
+  for (const line of diff.split(os.EOL)) {
+    if (line.startsWith(filePathPrefix)) {
+      // marks start of a new file
+      currentFile = path.join(
+        worktreeRoot.toString(),
+        line.substr(filePathPrefix.length)
+      );
+      currentRanges = [];
+      fileToRanges.set(currentFile, currentRanges);
+    } else if (line.startsWith(chunkHeaderSep)) {
+      const matches = line.match('^@@ .*?\\+(\\d+),?(\\d+)? @@');
+      if (matches !== null) {
+        const startLine = Number(matches[1]);
+        const numLines = matches[2];
+        const endLine =
+          Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
+        currentRanges.push({start: startLine, end: endLine});
+      }
+    }
+  }
+  return fileToRanges;
 }

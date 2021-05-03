@@ -2,12 +2,33 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 3374:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.init = exports.Repo = void 0;
+exports.parseChangedLines = exports.init = exports.Repo = void 0;
+const os = __importStar(__nccwpck_require__(2087));
+const path = __importStar(__nccwpck_require__(5622));
 const exec_1 = __nccwpck_require__(1514);
 const process_utils_1 = __nccwpck_require__(7900);
 /**
@@ -90,6 +111,41 @@ async function init(repoRoot) {
     return new Repo(repoRoot);
 }
 exports.init = init;
+/**
+ * Parse the changed lines from a context-less diff (i.e. a diff computed with
+ * -U0).
+ *
+ *  @param diff - A context-less diff
+ *  @param worktreeRoot - Absolute path to the root of the repository worktree
+ *  in which the diff was computed
+ *  @returns A mapping (filepath, array of disjoint line ranges)
+ */
+function parseChangedLines(diff, worktreeRoot) {
+    let currentFile = null;
+    let currentRanges = [];
+    const fileToRanges = new Map();
+    const filePathPrefix = '+++ b/';
+    const chunkHeaderSep = '@@';
+    for (const line of diff.split(os.EOL)) {
+        if (line.startsWith(filePathPrefix)) {
+            // marks start of a new file
+            currentFile = path.join(worktreeRoot.toString(), line.substr(filePathPrefix.length));
+            currentRanges = [];
+            fileToRanges.set(currentFile, currentRanges);
+        }
+        else if (line.startsWith(chunkHeaderSep)) {
+            const matches = line.match('^@@ .*?\\+(\\d+),?(\\d+)? @@');
+            if (matches !== null) {
+                const startLine = Number(matches[1]);
+                const numLines = matches[2];
+                const endLine = Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
+                currentRanges.push({ start: startLine, end: endLine });
+            }
+        }
+    }
+    return fileToRanges;
+}
+exports.parseChangedLines = parseChangedLines;
 //# sourceMappingURL=git.js.map
 
 /***/ }),
