@@ -16,6 +16,18 @@ URL to the Sorald JAR to download and use.
 > **Note:** This option is deprecated and will be removed, see
 > [this issue](https://github.com/SpoonLabs/sorald-buildbreaker/issues/7)
 
+### `ratchet-from`
+
+Commit-ish to ratchet from, such that only the changed lines between the head
+commit and the `ratchet-from` commit-ish are considered by this action. In
+other words, only changed lines between the head commit and the ratchet point
+are considered.
+
+A typical value for this would be a reference to the primary branch, which is
+almost always `'origin/main'` or `'origin/master'`. When `sorald-buildbreaker`
+runs on pull requests, this has the effect of only acting upon violations that
+are contained within the changed lines of the pull request.
+
 ## Outputs
 
 There are no outputs at this time.
