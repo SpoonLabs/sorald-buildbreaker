@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as core from '@actions/core';
 import {PathLike} from 'fs';
 import got from 'got';
@@ -15,7 +16,14 @@ async function download(url: string, dst: PathLike): Promise<void> {
   return pipeline(got.stream(url), fs.createWriteStream(dst));
 }
 
-async function runSorald(
+/**
+ * Run sorald and attempt to enact repairs.
+ *
+ * @param source - Path to the source directory
+ * @param soraldJarUrl - URL to download the Sorald JAR from
+ * @returns Fulfills to violation specifiers for repaired violations
+ */
+export async function runSorald(
   source: PathLike,
   soraldJarUrl: string
 ): Promise<string[]> {
@@ -32,30 +40,26 @@ async function runSorald(
     'stats.json'
   );
 
+  let allRepairs: string[] = [];
   if (keyToSpecs.size > 0) {
     core.info('Found rule violations');
-
     core.info('Attempting repairs');
-    const performedRepairs = Array.from(keyToSpecs.entries()).flatMap(
-      async function (subArray) {
-        const [ruleKey, violationSpecs] = subArray;
-        core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-        const statsFile = `${ruleKey}.json`;
-        const repairs = await sorald.repair(
-          jarDstPath,
-          source,
-          statsFile,
-          violationSpecs
-        );
-        repo.restore();
-        return repairs;
-      }
-    );
-    return (await Promise.all(performedRepairs)).flatMap(e => e);
+    for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
+      core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
+      const statsFile = path.join(source.toString(), `${ruleKey}.json`);
+      const repairs = await sorald.repair(
+        jarDstPath,
+        source,
+        statsFile,
+        violationSpecs
+      );
+      await repo.restore();
+      allRepairs = allRepairs.concat(repairs);
+    }
   } else {
     core.info('No violations found');
-    return [];
   }
+  return allRepairs;
 }
 
 async function run(): Promise<void> {
