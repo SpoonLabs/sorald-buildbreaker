@@ -195,10 +195,7 @@ const ranges = __importStar(__nccwpck_require__(9014));
 const git = __importStar(__nccwpck_require__(3374));
 const pipeline = util_1.promisify(stream.pipeline);
 async function download(url, dst) {
-    const downloadStream = got_1.default.stream(url);
-    const writeStream = fs.createWriteStream(dst);
-    await pipeline(downloadStream, writeStream);
-    writeStream.end();
+    return pipeline(got_1.default.stream(url), fs.createWriteStream(dst));
 }
 /**
  * Run sorald and attempt to enact repairs.
@@ -209,7 +206,6 @@ async function download(url, dst) {
  * @returns Fulfills to violation specifiers for repaired violations
  */
 async function runSorald(source, soraldJarUrl, ratchetFrom) {
-    core.info(ratchetFrom === undefined ? 'hello' : 'byebye');
     const jarDstPath = 'sorald.jar';
     const repo = new git.Repo(source);
     core.info(`Downloading Sorald jar to ${jarDstPath}`);
