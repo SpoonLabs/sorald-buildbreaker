@@ -191,3 +191,56 @@ test(`diff can handle HEAD~ as commitish argument`, async () => {
 +++ b/file.txt
 @@ -1,0 +2 @@ ${initialContent}+${addedContent}`);
 });
+
+test(`parseChangedLines correctly parses line ranges from two files`, async () => {
+  // arrange
+  const worktreeRoot = '/some/bogus/worktree';
+  const diff = `
+diff --git a/__tests__/git.test.ts b/__tests__/git.test.ts
+index d11d1bf..addc186 100644
+--- a/__tests__/git.test.ts
++++ b/__tests__/git.test.ts
+@@ -164,0 +165,29 @@ test('diff returns contextless diff', async () => {
++  [ ... DIFF TRUNCATED ... ]
++  await expect(diff).resolves.toContain(
++--- a/file.txt
+++++ b/file.txt
++@@ -1,0 +2 @@ initialContent}+addedContent
++});
+diff --git a/dist/index.js b/dist/index.js
+index ce99dd9..24279c3 100644
+Binary files a/dist/index.js and b/dist/index.js differ
+diff --git a/dist/index.js.map b/dist/index.js.map
+index 05c7322..bb93572 100644
+Binary files a/dist/index.js.map and b/dist/index.js.map differ
+diff --git a/src/git.ts b/src/git.ts
+index ec952c3..4db9502 100644
+--- a/src/git.ts
++++ b/src/git.ts
+@@ -47,0 +48 @@ export class Repo {
++   * @param additionalArgs - Additional arguments
+@@ -50,2 +51,2 @@ export class Repo {
+-  async diff(): Promise<string> {
+-    return this.gitExec(['diff', '-U0']);
++  async diff(...additionalArgs: string[]): Promise<string> {
++    return this.gitExec(['diff', '-U0'].concat(additionalArgs));`;
+  const expectedRanges = new Map([
+    [
+      path.join(worktreeRoot, '__tests__/git.test.ts'),
+      [{start: 165, end: 165 + 29}]
+    ],
+    [
+      path.join(worktreeRoot, 'src/git.ts'),
+      [
+        {start: 48, end: 48},
+        {start: 51, end: 51 + 2}
+      ]
+    ]
+  ]);
+
+  // act
+  const actualRanges = git.parseChangedLines(diff, worktreeRoot);
+
+  // assert
+  expect(actualRanges).toEqual(expectedRanges);
+});

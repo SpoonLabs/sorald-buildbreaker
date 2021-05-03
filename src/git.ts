@@ -1,7 +1,12 @@
+import * as os from 'os';
+import * as path from 'path';
 import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
+import {ClosedRange} from './ranges';
 
 import {execWithStdoutCap} from './process-utils';
+
+const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
 
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
@@ -87,4 +92,51 @@ export async function init(repoRoot: PathLike): Promise<Repo> {
     throw new Error(e.stderr.toString());
   }
   return new Repo(repoRoot);
+}
+
+/**
+ * Parse the changed lines from a context-less diff (i.e. a diff computed with
+ * -U0).
+ *
+ *  @param diff - A context-less diff
+ *  @param worktreeRoot - Absolute path to the root of the repository worktree
+ *  in which the diff was computed
+ *  @returns A mapping (filepath, array of disjoint line ranges)
+ */
+export function parseChangedLines(
+  diff: string,
+  worktreeRoot: PathLike
+): Map<PathLike, ClosedRange[]> {
+  const filePathPrefix = '+++ b/';
+  const hunkHeaderSep = '@@';
+  const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
+  let currentRanges: ClosedRange[] = [];
+
+  for (const line of diff.split(os.EOL)) {
+    if (line.startsWith(filePathPrefix)) {
+      const currentFile = path.join(
+        worktreeRoot.toString(),
+        line.substr(filePathPrefix.length)
+      );
+      currentRanges = [];
+      fileToRanges.set(currentFile, currentRanges);
+    } else if (line.startsWith(hunkHeaderSep)) {
+      currentRanges.push(parseRangeFromHunkHeader(line));
+    }
+  }
+
+  return fileToRanges;
+}
+
+function parseRangeFromHunkHeader(hunkHeader: string): ClosedRange {
+  const matches = hunkHeader.match(HUNK_HEADER_REGEX);
+  if (matches !== null) {
+    const startLine = Number(matches[1]);
+    const numLines = matches[2];
+    const endLine =
+      Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
+    return {start: startLine, end: endLine};
+  } else {
+    throw Error(`bad hunk header: ${hunkHeader}`);
+  }
 }

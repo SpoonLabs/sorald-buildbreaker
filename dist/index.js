@@ -2,14 +2,36 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 3374:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.init = exports.Repo = void 0;
+exports.parseChangedLines = exports.init = exports.Repo = void 0;
+const os = __importStar(__nccwpck_require__(2087));
+const path = __importStar(__nccwpck_require__(5622));
 const exec_1 = __nccwpck_require__(1514);
 const process_utils_1 = __nccwpck_require__(7900);
+const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
  */
@@ -90,6 +112,45 @@ async function init(repoRoot) {
     return new Repo(repoRoot);
 }
 exports.init = init;
+/**
+ * Parse the changed lines from a context-less diff (i.e. a diff computed with
+ * -U0).
+ *
+ *  @param diff - A context-less diff
+ *  @param worktreeRoot - Absolute path to the root of the repository worktree
+ *  in which the diff was computed
+ *  @returns A mapping (filepath, array of disjoint line ranges)
+ */
+function parseChangedLines(diff, worktreeRoot) {
+    const filePathPrefix = '+++ b/';
+    const hunkHeaderSep = '@@';
+    const fileToRanges = new Map();
+    let currentRanges = [];
+    for (const line of diff.split(os.EOL)) {
+        if (line.startsWith(filePathPrefix)) {
+            const currentFile = path.join(worktreeRoot.toString(), line.substr(filePathPrefix.length));
+            currentRanges = [];
+            fileToRanges.set(currentFile, currentRanges);
+        }
+        else if (line.startsWith(hunkHeaderSep)) {
+            currentRanges.push(parseRangeFromHunkHeader(line));
+        }
+    }
+    return fileToRanges;
+}
+exports.parseChangedLines = parseChangedLines;
+function parseRangeFromHunkHeader(hunkHeader) {
+    const matches = hunkHeader.match(HUNK_HEADER_REGEX);
+    if (matches !== null) {
+        const startLine = Number(matches[1]);
+        const numLines = matches[2];
+        const endLine = Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
+        return { start: startLine, end: endLine };
+    }
+    else {
+        throw Error(`bad hunk header: ${hunkHeader}`);
+    }
+}
 //# sourceMappingURL=git.js.map
 
 /***/ }),
@@ -238,9 +299,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.repair = exports.mine = void 0;
+exports.parseAffectedLines = exports.repair = exports.mine = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 /**
  * Mine a directory with Sorald.
  *
@@ -318,6 +380,19 @@ function parseRepairedViolations(repairData) {
         }
     }
 }
+/**
+ * Parse the lines of a rule violation.
+ *
+ * @param violationSpec - A violation specifier
+ * @returns A closed range with the start and end lines of the violation
+ */
+function parseAffectedLines(violationSpec) {
+    const startLineIdx = 2;
+    const endLineIdx = startLineIdx + 2;
+    const parts = violationSpec.split(path.delimiter);
+    return { start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx]) };
+}
+exports.parseAffectedLines = parseAffectedLines;
 //# sourceMappingURL=sorald.js.map
 
 /***/ }),
