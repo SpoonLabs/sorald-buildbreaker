@@ -299,9 +299,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.repair = exports.mine = void 0;
+exports.parseAffectedLines = exports.repair = exports.mine = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 /**
  * Mine a directory with Sorald.
  *
@@ -379,6 +380,19 @@ function parseRepairedViolations(repairData) {
         }
     }
 }
+/**
+ * Parse the lines of a rule violation.
+ *
+ * @param violationSpec - A violation specifier
+ * @returns A closed range with the start and end lines of the violation
+ */
+function parseAffectedLines(violationSpec) {
+    const startLineIdx = 2;
+    const endLineIdx = startLineIdx + 2;
+    const parts = violationSpec.split(path.delimiter);
+    return { start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx]) };
+}
+exports.parseAffectedLines = parseAffectedLines;
 //# sourceMappingURL=sorald.js.map
 
 /***/ }),
