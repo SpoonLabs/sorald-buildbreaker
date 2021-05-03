@@ -31,6 +31,7 @@ const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
 const exec_1 = __nccwpck_require__(1514);
 const process_utils_1 = __nccwpck_require__(7900);
+const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
  */
@@ -121,31 +122,35 @@ exports.init = init;
  *  @returns A mapping (filepath, array of disjoint line ranges)
  */
 function parseChangedLines(diff, worktreeRoot) {
-    let currentFile = null;
-    let currentRanges = [];
-    const fileToRanges = new Map();
     const filePathPrefix = '+++ b/';
-    const chunkHeaderSep = '@@';
+    const hunkHeaderSep = '@@';
+    const fileToRanges = new Map();
+    let currentRanges = [];
     for (const line of diff.split(os.EOL)) {
         if (line.startsWith(filePathPrefix)) {
-            // marks start of a new file
-            currentFile = path.join(worktreeRoot.toString(), line.substr(filePathPrefix.length));
+            const currentFile = path.join(worktreeRoot.toString(), line.substr(filePathPrefix.length));
             currentRanges = [];
             fileToRanges.set(currentFile, currentRanges);
         }
-        else if (line.startsWith(chunkHeaderSep)) {
-            const matches = line.match('^@@ .*?\\+(\\d+),?(\\d+)? @@');
-            if (matches !== null) {
-                const startLine = Number(matches[1]);
-                const numLines = matches[2];
-                const endLine = Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
-                currentRanges.push({ start: startLine, end: endLine });
-            }
+        else if (line.startsWith(hunkHeaderSep)) {
+            currentRanges.push(parseRangeFromHunkHeader(line));
         }
     }
     return fileToRanges;
 }
 exports.parseChangedLines = parseChangedLines;
+function parseRangeFromHunkHeader(hunkHeader) {
+    const matches = hunkHeader.match(HUNK_HEADER_REGEX);
+    if (matches !== null) {
+        const startLine = Number(matches[1]);
+        const numLines = matches[2];
+        const endLine = Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
+        return { start: startLine, end: endLine };
+    }
+    else {
+        throw Error(`bad hunk header: ${hunkHeader}`);
+    }
+}
 //# sourceMappingURL=git.js.map
 
 /***/ }),
