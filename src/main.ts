@@ -112,10 +112,11 @@ async function run(): Promise<void> {
   try {
     const source: PathLike = core.getInput('source');
     const soraldJarUrl: string = core.getInput('sorald-jar-url');
+    const ratchetFrom: string = core.getInput('ratchet-from');
     const repairedViolations: string[] = await runSorald(
       source,
       soraldJarUrl,
-      undefined
+      ratchetFrom
     );
 
     if (repairedViolations.length > 0) {
