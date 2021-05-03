@@ -3,23 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as git from '../src/git';
+import * as helpers from '../src/test-helpers';
 import {execWithStdoutCap} from '../src/process-utils';
-
-async function createTempdir(): Promise<string> {
-  return fs.promises.mkdtemp(
-    path.join(os.tmpdir(), 'sorald-buildbreaker-test-')
-  );
-}
-
-async function createFile(path: fs.PathLike, content: string): Promise<void> {
-  const file = await fs.promises.open(path, 'w');
-  await file.write(content);
-  await file.close();
-}
 
 test('getWorktreeRoot returns correct directory when target is subdir', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   await git.init(tmpdir);
   const subdir = path.join(tmpdir, 'someSubDir');
   await fs.promises.mkdir(subdir);
@@ -34,7 +23,7 @@ test('getWorktreeRoot returns correct directory when target is subdir', async ()
 
 test('getWorktreeRoot returns correct directory when target is root', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   await git.init(tmpdir);
 
   // act
@@ -46,7 +35,7 @@ test('getWorktreeRoot returns correct directory when target is root', async () =
 });
 
 test('init initializes directory with Git repo', async () => {
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   await git.init(tmpdir);
 
   await expect(
@@ -56,9 +45,9 @@ test('init initializes directory with Git repo', async () => {
 
 test('add empty file', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   const filename = 'file.txt';
-  await createFile(path.join(tmpdir, filename), '');
+  await helpers.createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
 
   // act
@@ -72,9 +61,9 @@ test('add empty file', async () => {
 
 test('commit empty file', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   const filename = 'file.txt';
-  await createFile(path.join(tmpdir, filename), '');
+  await helpers.createFile(path.join(tmpdir, filename), '');
   const repo = await git.init(tmpdir);
   await repo.add(filename);
 
@@ -94,10 +83,10 @@ test('commit empty file', async () => {
 
 test('restore rolls back change', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   const filename = 'file.txt';
   const filepath = path.join(tmpdir, filename);
-  await createFile(filepath, '');
+  await helpers.createFile(filepath, '');
 
   const repo = await git.init(tmpdir);
   await repo.add(filename);
@@ -119,12 +108,12 @@ test('restore rolls back change', async () => {
 
 test('diff returns contextless diff', async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   const filename = 'file.txt';
   const filepath = path.join(tmpdir, filename);
   const initialContent = `Hello, there!
 `; // note that this trailing newline is important for git to consider the edit as a pure addition
-  await createFile(filepath, initialContent);
+  await helpers.createFile(filepath, initialContent);
 
   const repo = await git.init(tmpdir);
   await repo.add(filename);
@@ -132,7 +121,7 @@ test('diff returns contextless diff', async () => {
 
   const addedContent = 'what is up?';
   const changedContent = `${initialContent}${addedContent}`;
-  await createFile(filepath, changedContent);
+  await helpers.createFile(filepath, changedContent);
 
   // act
   const diff = repo.diff();
@@ -165,12 +154,12 @@ test('diff returns contextless diff', async () => {
 
 test(`diff can handle HEAD~ as commitish argument`, async () => {
   // arrange
-  const tmpdir = await createTempdir();
+  const tmpdir = await helpers.createTempdir();
   const filename = 'file.txt';
   const filepath = path.join(tmpdir, filename);
   const initialContent = `Hello, there!
 `; // note that this trailing newline is important for git to consider the edit as a pure addition
-  await createFile(filepath, initialContent);
+  await helpers.createFile(filepath, initialContent);
 
   const repo = await git.init(tmpdir);
   await repo.add(filename);
@@ -178,7 +167,7 @@ test(`diff can handle HEAD~ as commitish argument`, async () => {
 
   const addedContent = 'what is up?';
   const changedContent = `${initialContent}${addedContent}`;
-  await createFile(filepath, changedContent);
+  await helpers.createFile(filepath, changedContent);
   await repo.add(filename);
   await repo.commit('Change some stuff');
 
