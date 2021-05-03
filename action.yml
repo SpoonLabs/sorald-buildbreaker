@@ -8,7 +8,7 @@ inputs:
   sorald-jar-url:
     description: 'URL to a Sorald JAR-file'
     required: true
-    default: 'https://oss.sonatype.org/content/repositories/snapshots/se/kth/castor/sorald/0.1.0-SNAPSHOT/sorald-0.1.0-20210413.095022-2-jar-with-dependencies.jar'
+    default: 'https://oss.sonatype.org/service/local/repositories/releases/content/se/kth/castor/sorald/0.2.0/sorald-0.2.0.jar'
 runs:
   using: 'node12'
   main: 'dist/index.js'
