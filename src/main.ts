@@ -29,7 +29,7 @@ async function download(url: string, dst: PathLike): Promise<void> {
 export async function runSorald(
   source: PathLike,
   soraldJarUrl: string,
-  ratchetFrom: string
+  ratchetFrom?: string
 ): Promise<string[]> {
   const jarDstPath = 'sorald.jar';
   const repo = new git.Repo(source);
@@ -44,13 +44,14 @@ export async function runSorald(
     'stats.json'
   );
 
-  const changedLines = ratchetFrom
-    ? undefined
-    : await (async () => {
-        const diff = await repo.diff(ratchetFrom);
-        const worktreeRoot = await repo.getWorktreeRoot();
-        return git.parseChangedLines(diff, worktreeRoot);
-      })();
+  const changedLines =
+    ratchetFrom === undefined
+      ? undefined
+      : await (async () => {
+          const diff = await repo.diff(ratchetFrom);
+          const worktreeRoot = await repo.getWorktreeRoot();
+          return git.parseChangedLines(diff, worktreeRoot);
+        })();
 
   let allRepairs: string[] = [];
   if (keyToSpecs.size > 0) {
@@ -107,7 +108,7 @@ async function run(): Promise<void> {
   try {
     const source: PathLike = core.getInput('source');
     const soraldJarUrl: string = core.getInput('sorald-jar-url');
-    const ratchetFrom: string = core.getInput('ratchet-from');
+    const ratchetFrom: string | undefined = core.getInput('ratchet-from');
     const repairedViolations: string[] = await runSorald(
       source,
       soraldJarUrl,
