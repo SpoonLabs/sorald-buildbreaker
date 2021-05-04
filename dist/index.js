@@ -257,7 +257,7 @@ async function run() {
         const source = core.getInput('source');
         const soraldJarUrl = core.getInput('sorald-jar-url');
         const ratchetFrom = core.getInput('ratchet-from');
-        const repairedViolations = await runSorald(source, soraldJarUrl, ratchetFrom);
+        const repairedViolations = await runSorald(source, soraldJarUrl, ratchetFrom ? ratchetFrom : undefined);
         if (repairedViolations.length > 0) {
             core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
         }
