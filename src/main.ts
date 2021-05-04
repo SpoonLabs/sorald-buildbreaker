@@ -112,7 +112,7 @@ async function run(): Promise<void> {
     const repairedViolations: string[] = await runSorald(
       source,
       soraldJarUrl,
-      ratchetFrom
+      ratchetFrom ? ratchetFrom : undefined
     );
 
     if (repairedViolations.length > 0) {
