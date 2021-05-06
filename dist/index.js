@@ -240,6 +240,10 @@ async function runSorald(source, soraldJarUrl, ratchetFrom) {
     return allRepairs;
 }
 exports.runSorald = runSorald;
+/**
+ * Filter out any violation specifiers that aren't present in the changed lines
+ * of code.
+ */
 function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
     if (changedLines === undefined) {
         return violationSpecs;
