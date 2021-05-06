@@ -84,6 +84,10 @@ export async function runSorald(
   return allRepairs;
 }
 
+/**
+ * Filter out any violation specifiers that aren't present in the changed lines
+ * of code.
+ */
 function filterViolationSpecsByRatchet(
   violationSpecs: string[],
   changedLines: Map<PathLike, ClosedRange[]> | undefined,
