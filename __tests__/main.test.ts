@@ -18,6 +18,7 @@ function wrapInClassInMainMethod(
 }
 
 jest.setTimeout(20 * 1000);
+
 test('runSorald can ratchet from HEAD~', async () => {
   // Test that buildbreaker can ratchet from HEAD~. The only reason we use
   // HEAD~ is that it's very easy to setup the test.
@@ -66,7 +67,6 @@ test('runSorald can ratchet from HEAD~', async () => {
   ]);
 });
 
-jest.setTimeout(20 * 1000);
 test('runSorald correctly repairs existing violations', async () => {
   // Test that buildbreaker can ratchet from HEAD~. The only reason we use
   // HEAD~ is that it's very easy to setup the test.
