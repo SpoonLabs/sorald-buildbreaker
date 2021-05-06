@@ -191,6 +191,7 @@ const got_1 = __importDefault(__nccwpck_require__(3061));
 const util_1 = __nccwpck_require__(1669);
 const stream = __importStar(__nccwpck_require__(2413));
 const sorald = __importStar(__nccwpck_require__(4111));
+const ranges = __importStar(__nccwpck_require__(9014));
 const git = __importStar(__nccwpck_require__(3374));
 const pipeline = util_1.promisify(stream.pipeline);
 async function download(url, dst) {
@@ -201,20 +202,31 @@ async function download(url, dst) {
  *
  * @param source - Path to the source directory
  * @param soraldJarUrl - URL to download the Sorald JAR from
+ * @param ratchetFrom - Commit-ish to ratchet from
  * @returns Fulfills to violation specifiers for repaired violations
  */
-async function runSorald(source, soraldJarUrl) {
+async function runSorald(source, soraldJarUrl, ratchetFrom) {
     const jarDstPath = 'sorald.jar';
     const repo = new git.Repo(source);
     core.info(`Downloading Sorald jar to ${jarDstPath}`);
     await download(soraldJarUrl, jarDstPath);
     core.info(`Mining rule violations at ${source}`);
     const keyToSpecs = await sorald.mine(jarDstPath, source, 'stats.json');
+    const changedLines = ratchetFrom === undefined
+        ? undefined
+        : await (async () => {
+            const diff = await repo.diff(ratchetFrom);
+            const worktreeRoot = await repo.getWorktreeRoot();
+            return git.parseChangedLines(diff, worktreeRoot);
+        })();
     let allRepairs = [];
     if (keyToSpecs.size > 0) {
         core.info('Found rule violations');
         core.info('Attempting repairs');
-        for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
+        for (const [ruleKey, unfilteredSpecs] of keyToSpecs.entries()) {
+            const violationSpecs = changedLines === undefined
+                ? unfilteredSpecs
+                : filterViolationSpecsByRatchet(unfilteredSpecs, changedLines, source);
             core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
             const statsFile = path.join(source.toString(), `${ruleKey}.json`);
             const repairs = await sorald.repair(jarDstPath, source, statsFile, violationSpecs);
@@ -228,11 +240,28 @@ async function runSorald(source, soraldJarUrl) {
     return allRepairs;
 }
 exports.runSorald = runSorald;
+/**
+ * Filter out any violation specifiers that aren't present in the changed lines
+ * of code.
+ */
+function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
+    if (changedLines === undefined) {
+        return violationSpecs;
+    }
+    return violationSpecs.filter(spec => {
+        const filePath = path.join(source.toString(), sorald.parseFilePath(spec));
+        const lineRange = sorald.parseAffectedLines(spec);
+        const changedLinesInFile = changedLines.get(filePath);
+        return (changedLinesInFile !== undefined &&
+            ranges.overlapsAny(lineRange, changedLinesInFile));
+    });
+}
 async function run() {
     try {
         const source = core.getInput('source');
         const soraldJarUrl = core.getInput('sorald-jar-url');
-        const repairedViolations = await runSorald(source, soraldJarUrl);
+        const ratchetFrom = core.getInput('ratchet-from');
+        const repairedViolations = await runSorald(source, soraldJarUrl, ratchetFrom ? ratchetFrom : undefined);
         if (repairedViolations.length > 0) {
             core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
         }
@@ -283,6 +312,41 @@ exports.execWithStdoutCap = execWithStdoutCap;
 
 /***/ }),
 
+/***/ 9014:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.overlapsAny = void 0;
+/**
+ * Determine whether or not the sought range overlaps with any of the ranges in
+ * compare.
+ *
+ * @param soughtRange - The range to find an overlap for
+ * @param compare - Ranges to search for overlap with the sought range
+ * @returns true if there is any range in compare that overlaps with the sought
+ * range
+ */
+function overlapsAny(soughtRange, compare) {
+    return compare.find(range => rangesOverlap(soughtRange, range)) !== undefined;
+}
+exports.overlapsAny = overlapsAny;
+/**
+ * Determine whether or not two ranges overlap.
+ *
+ * @param lhs - A range
+ * @param rhs - A range
+ * @returns true if the ranges overlap
+ */
+function rangesOverlap(lhs, rhs) {
+    return ((lhs.start <= rhs.start && lhs.end >= rhs.start) ||
+        (rhs.start <= lhs.start && rhs.end >= lhs.start));
+}
+//# sourceMappingURL=ranges.js.map
+
+/***/ }),
+
 /***/ 4111:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -308,7 +372,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseAffectedLines = exports.repair = exports.mine = void 0;
+exports.parseFilePath = exports.parseAffectedLines = exports.repair = exports.mine = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
@@ -402,6 +466,16 @@ function parseAffectedLines(violationSpec) {
     return { start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx]) };
 }
 exports.parseAffectedLines = parseAffectedLines;
+/**
+ * Parse the relative filepath from the rule violation.
+ *
+ * @param violationSpec - A violation specifier
+ * @returns Relative filepath to file containing the violation
+ */
+function parseFilePath(violationSpec) {
+    return violationSpec.split(path.delimiter)[1];
+}
+exports.parseFilePath = parseFilePath;
 //# sourceMappingURL=sorald.js.map
 
 /***/ }),
