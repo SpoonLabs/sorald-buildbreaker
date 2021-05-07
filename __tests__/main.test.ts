@@ -67,6 +67,55 @@ test('runSorald can ratchet from HEAD~', async () => {
   ]);
 });
 
+test('runSorald can ratchet from HEAD~ with relative source path', async () => {
+  // Test that buildbreaker can ratchet from HEAD~ with a relative path to the
+  // source. The only reason we use HEAD~ is that it's very easy to setup the
+  // test.
+
+  // arrange
+  const workdir = await helpers.createTempdir();
+  const repo = await git.init(workdir);
+
+  // create a commit with a single violation each of rules 2164 (math on float) and 1854 (dead store)
+  const className = 'Main';
+  const filePath = path.join(workdir, `${className}.java`);
+  const baseMethodBody = `float a = 2;
+  float b = 2; // 1854: dead store
+  b = 3;
+  float c = a / b; // 2164: math on float
+  System.out.println(c);`;
+  const initialClassContent = wrapInClassInMainMethod(
+    className,
+    baseMethodBody
+  );
+  helpers.createFile(filePath, initialClassContent);
+  await repo.add(filePath);
+  await repo.commit('Initial commit');
+
+  // create a new commit with one more violation of each rule
+  const secondCommitMethodBody = `${baseMethodBody}
+  c = b / a; // 2164: math on float
+  System.out.println(c);
+  b = c; // 1854: dead store`;
+  const secondCommitClassContent = wrapInClassInMainMethod(
+    className,
+    secondCommitMethodBody
+  );
+  await helpers.createFile(filePath, secondCommitClassContent);
+  await repo.add(filePath);
+  await repo.commit('Update file');
+
+  // act
+  const soraldJarUrl =
+    'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar';
+  const relativeSourcePath = path.relative('.', workdir.toString());
+  const repairs = main.runSorald(relativeSourcePath, soraldJarUrl, 'HEAD~');
+
+  await expect(repairs).resolves.toEqual([
+    '1854:Main.java:10:4:10:7',
+    '2164:Main.java:8:6:8:11'
+  ]);
+});
 test('runSorald with ratchet does nothing when there are no violations in changed code', async () => {
   // arrange
   const workdir = await helpers.createTempdir();
