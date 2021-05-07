@@ -31,21 +31,22 @@ export async function runSorald(
   soraldJarUrl: string,
   ratchetFrom?: string
 ): Promise<string[]> {
+  const sourceAbsPath = path.resolve(source.toString());
   const jarDstPath = 'sorald.jar';
-  const repo = new git.Repo(source);
+  const repo = new git.Repo(sourceAbsPath);
 
   core.info(`Downloading Sorald jar to ${jarDstPath}`);
   await download(soraldJarUrl, jarDstPath);
 
-  core.info(`Mining rule violations at ${source}`);
+  core.info(`Mining rule violations at ${sourceAbsPath}`);
   const unfilteredKeyToSpecs: Map<number, string[]> = await sorald.mine(
     jarDstPath,
-    source,
+    sourceAbsPath,
     'stats.json'
   );
   const keyToSpecs = await filterKeyToSpecsByRatchet(
     unfilteredKeyToSpecs,
-    source,
+    sourceAbsPath,
     repo,
     ratchetFrom
   );
@@ -56,10 +57,10 @@ export async function runSorald(
     core.info('Attempting repairs');
     for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
       core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-      const statsFile = path.join(source.toString(), `${ruleKey}.json`);
+      const statsFile = path.join(sourceAbsPath.toString(), `${ruleKey}.json`);
       const repairs = await sorald.repair(
         jarDstPath,
-        source,
+        sourceAbsPath,
         statsFile,
         violationSpecs
       );
