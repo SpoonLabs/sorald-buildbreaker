@@ -38,35 +38,23 @@ export async function runSorald(
   await download(soraldJarUrl, jarDstPath);
 
   core.info(`Mining rule violations at ${source}`);
-  const keyToSpecs: Map<number, string[]> = await sorald.mine(
+  const unfilteredKeyToSpecs: Map<number, string[]> = await sorald.mine(
     jarDstPath,
     source,
     'stats.json'
   );
-
-  const changedLines =
-    ratchetFrom === undefined
-      ? undefined
-      : await (async () => {
-          const diff = await repo.diff(ratchetFrom);
-          const worktreeRoot = await repo.getWorktreeRoot();
-          return git.parseChangedLines(diff, worktreeRoot);
-        })();
+  const keyToSpecs = await filterKeyToSpecsByRatchet(
+    unfilteredKeyToSpecs,
+    source,
+    repo,
+    ratchetFrom
+  );
 
   let allRepairs: string[] = [];
   if (keyToSpecs.size > 0) {
     core.info('Found rule violations');
     core.info('Attempting repairs');
-    for (const [ruleKey, unfilteredSpecs] of keyToSpecs.entries()) {
-      const violationSpecs =
-        changedLines === undefined
-          ? unfilteredSpecs
-          : filterViolationSpecsByRatchet(
-              unfilteredSpecs,
-              changedLines,
-              source
-            );
-
+    for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
       core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
       const statsFile = path.join(source.toString(), `${ruleKey}.json`);
       const repairs = await sorald.repair(
@@ -82,6 +70,43 @@ export async function runSorald(
     core.info('No violations found');
   }
   return allRepairs;
+}
+
+/**
+ * Filter the violation specs such that only those present in changed code are
+ * retained, and return a new map where only keys with at least one violation
+ * spec is present after filtering.
+ *
+ * If ratchetFrom is undefined, just return a copy of the keyToSpecs map.
+ */
+async function filterKeyToSpecsByRatchet(
+  keyToSpecs: Map<number, string[]>,
+  source: PathLike,
+  repo: git.Repo,
+  ratchetFrom: string | undefined
+): Promise<Map<number, string[]>> {
+  if (ratchetFrom === undefined) {
+    return new Map(keyToSpecs);
+  }
+
+  const filteredKeyToSpecs: Map<number, string[]> = new Map();
+
+  const diff = await repo.diff(ratchetFrom);
+  const worktreeRoot = await repo.getWorktreeRoot();
+  const changedLines = git.parseChangedLines(diff, worktreeRoot);
+
+  for (const [ruleKey, unfilteredSpecs] of keyToSpecs.entries()) {
+    const filteredSpecs =
+      changedLines === undefined
+        ? unfilteredSpecs
+        : filterViolationSpecsByRatchet(unfilteredSpecs, changedLines, source);
+
+    if (filteredSpecs.length > 0) {
+      filteredKeyToSpecs.set(ruleKey, filteredSpecs);
+    }
+  }
+
+  return filteredKeyToSpecs;
 }
 
 /**
