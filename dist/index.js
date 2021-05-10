@@ -206,21 +206,22 @@ async function download(url, dst) {
  * @returns Fulfills to violation specifiers for repaired violations
  */
 async function runSorald(source, soraldJarUrl, ratchetFrom) {
+    const sourceAbsPath = path.resolve(source.toString());
     const jarDstPath = 'sorald.jar';
-    const repo = new git.Repo(source);
+    const repo = new git.Repo(sourceAbsPath);
     core.info(`Downloading Sorald jar to ${jarDstPath}`);
     await download(soraldJarUrl, jarDstPath);
-    core.info(`Mining rule violations at ${source}`);
-    const unfilteredKeyToSpecs = await sorald.mine(jarDstPath, source, 'stats.json');
-    const keyToSpecs = await filterKeyToSpecsByRatchet(unfilteredKeyToSpecs, source, repo, ratchetFrom);
+    core.info(`Mining rule violations at ${sourceAbsPath}`);
+    const unfilteredKeyToSpecs = await sorald.mine(jarDstPath, sourceAbsPath, 'stats.json');
+    const keyToSpecs = await filterKeyToSpecsByRatchet(unfilteredKeyToSpecs, sourceAbsPath, repo, ratchetFrom);
     let allRepairs = [];
     if (keyToSpecs.size > 0) {
         core.info('Found rule violations');
         core.info('Attempting repairs');
         for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
             core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-            const statsFile = path.join(source.toString(), `${ruleKey}.json`);
-            const repairs = await sorald.repair(jarDstPath, source, statsFile, violationSpecs);
+            const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
+            const repairs = await sorald.repair(jarDstPath, sourceAbsPath, statsFile, violationSpecs);
             await repo.restore();
             allRepairs = allRepairs.concat(repairs);
         }
