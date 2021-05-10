@@ -220,7 +220,7 @@ async function runSorald(source, soraldJarUrl, ratchetFrom) {
         core.info('Attempting repairs');
         for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
             core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-            const statsFile = path.join(sourceAbsPath.toString(), `${ruleKey}.json`);
+            const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
             const repairs = await sorald.repair(jarDstPath, sourceAbsPath, statsFile, violationSpecs);
             await repo.restore();
             allRepairs = allRepairs.concat(repairs);
