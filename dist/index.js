@@ -26,7 +26,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseChangedLines = exports.init = exports.Repo = void 0;
+exports.parseDiffHunks = exports.parseChangedLines = exports.init = exports.Repo = void 0;
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
 const exec_1 = __nccwpck_require__(1514);
@@ -122,23 +122,59 @@ exports.init = init;
  *  @returns A mapping (filepath, array of disjoint line ranges)
  */
 function parseChangedLines(diff, worktreeRoot) {
-    const filePathPrefix = '+++ b/';
-    const hunkHeaderSep = '@@';
     const fileToRanges = new Map();
-    let currentRanges = [];
-    for (const line of diff.split(os.EOL)) {
-        if (line.startsWith(filePathPrefix)) {
-            const currentFile = path.join(worktreeRoot.toString(), line.substr(filePathPrefix.length));
+    for (const hunk of parseDiffHunks(diff)) {
+        const absPath = path.join(worktreeRoot.toString(), hunk.rightFile.toString());
+        let currentRanges = fileToRanges.get(absPath);
+        if (currentRanges === undefined) {
             currentRanges = [];
-            fileToRanges.set(currentFile, currentRanges);
         }
-        else if (line.startsWith(hunkHeaderSep)) {
-            currentRanges.push(parseRangeFromHunkHeader(line));
-        }
+        currentRanges.push(hunk.rightRange);
+        fileToRanges.set(absPath, currentRanges);
     }
     return fileToRanges;
 }
 exports.parseChangedLines = parseChangedLines;
+/**
+ * Parse diff hunks from a raw diff.
+ */
+function parseDiffHunks(diff) {
+    const filePathPrefix = '+++ b/';
+    const addedPrefix = '+';
+    const deletedPrefix = '-';
+    const hunkHeaderSep = '@@';
+    let currentHunk;
+    const hunks = [];
+    for (const line of diff.split(os.EOL)) {
+        if (line.startsWith(filePathPrefix)) {
+            const currentFile = line.substr(filePathPrefix.length);
+            currentHunk = {
+                rightRange: { start: -1, end: -1 },
+                additions: [],
+                deletions: [],
+                rightFile: currentFile
+            };
+            hunks.push(currentHunk);
+        }
+        else if (currentHunk === undefined) {
+            continue;
+        }
+        if (line.startsWith(hunkHeaderSep)) {
+            currentHunk.rightRange = parseRangeFromHunkHeader(line);
+        }
+        else if (line.startsWith(addedPrefix)) {
+            currentHunk.additions.push(line.substr(addedPrefix.length));
+        }
+        else if (line.startsWith(deletedPrefix)) {
+            currentHunk.deletions.push(line.substr(deletedPrefix.length));
+        }
+        else {
+            currentHunk = undefined;
+        }
+    }
+    return hunks;
+}
+exports.parseDiffHunks = parseDiffHunks;
 function parseRangeFromHunkHeader(hunkHeader) {
     const matches = hunkHeader.match(HUNK_HEADER_REGEX);
     if (matches !== null) {

@@ -107,25 +107,68 @@ export function parseChangedLines(
   diff: string,
   worktreeRoot: PathLike
 ): Map<PathLike, ClosedRange[]> {
-  const filePathPrefix = '+++ b/';
-  const hunkHeaderSep = '@@';
   const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
-  let currentRanges: ClosedRange[] = [];
 
-  for (const line of diff.split(os.EOL)) {
-    if (line.startsWith(filePathPrefix)) {
-      const currentFile = path.join(
-        worktreeRoot.toString(),
-        line.substr(filePathPrefix.length)
-      );
+  for (const hunk of parseDiffHunks(diff)) {
+    const absPath = path.join(
+      worktreeRoot.toString(),
+      hunk.rightFile.toString()
+    );
+    let currentRanges = fileToRanges.get(absPath);
+    if (currentRanges === undefined) {
       currentRanges = [];
-      fileToRanges.set(currentFile, currentRanges);
-    } else if (line.startsWith(hunkHeaderSep)) {
-      currentRanges.push(parseRangeFromHunkHeader(line));
     }
+    currentRanges.push(hunk.rightRange);
+    fileToRanges.set(absPath, currentRanges);
   }
 
   return fileToRanges;
+}
+
+export interface Hunk {
+  rightRange: ClosedRange;
+  additions: string[];
+  deletions: string[];
+  rightFile: PathLike;
+}
+
+/**
+ * Parse diff hunks from a raw diff.
+ */
+export function parseDiffHunks(diff: string): Hunk[] {
+  const filePathPrefix = '+++ b/';
+  const addedPrefix = '+';
+  const deletedPrefix = '-';
+  const hunkHeaderSep = '@@';
+
+  let currentHunk: Hunk | undefined;
+  const hunks: Hunk[] = [];
+  for (const line of diff.split(os.EOL)) {
+    if (line.startsWith(filePathPrefix)) {
+      const currentFile = line.substr(filePathPrefix.length);
+      currentHunk = {
+        rightRange: {start: -1, end: -1},
+        additions: [],
+        deletions: [],
+        rightFile: currentFile
+      };
+      hunks.push(currentHunk);
+    } else if (currentHunk === undefined) {
+      continue;
+    }
+
+    if (line.startsWith(hunkHeaderSep)) {
+      currentHunk.rightRange = parseRangeFromHunkHeader(line);
+    } else if (line.startsWith(addedPrefix)) {
+      currentHunk.additions.push(line.substr(addedPrefix.length));
+    } else if (line.startsWith(deletedPrefix)) {
+      currentHunk.deletions.push(line.substr(deletedPrefix.length));
+    } else {
+      currentHunk = undefined;
+    }
+  }
+
+  return hunks;
 }
 
 function parseRangeFromHunkHeader(hunkHeader: string): ClosedRange {
