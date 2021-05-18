@@ -31,7 +31,7 @@ const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
 const exec_1 = __nccwpck_require__(1514);
 const process_utils_1 = __nccwpck_require__(7900);
-const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
+const HUNK_HEADER_REGEX = '^@@ .*?\\-(\\d+),?(\\d+)?.*?\\+(\\d+),?(\\d+)? @@';
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
  */
@@ -137,54 +137,84 @@ function parseChangedLines(diff, worktreeRoot) {
 exports.parseChangedLines = parseChangedLines;
 /**
  * Parse diff hunks from a raw diff.
+ *
+ * @param diff - A raw diff
+ * @returns Parsed diff hunks
  */
 function parseDiffHunks(diff) {
-    const filePathPrefix = '+++ b/';
+    const leftFilePrefix = '--- a/';
+    const rightFilePrefix = '+++ b/';
     const addedPrefix = '+';
     const deletedPrefix = '-';
     const hunkHeaderSep = '@@';
     let currentHunk;
+    let currentLeftFile;
+    let currentRightFile;
     const hunks = [];
     for (const line of diff.split(os.EOL)) {
-        if (line.startsWith(filePathPrefix)) {
-            const currentFile = line.substr(filePathPrefix.length);
-            currentHunk = {
-                rightRange: { start: -1, end: -1 },
+        if (line.startsWith(leftFilePrefix)) {
+            currentLeftFile = line.substr(leftFilePrefix.length);
+        }
+        else if (line.startsWith(rightFilePrefix)) {
+            currentRightFile = line.substr(rightFilePrefix.length);
+        }
+        else if (line.startsWith(hunkHeaderSep) &&
+            currentLeftFile !== undefined &&
+            currentRightFile !== undefined) {
+            const [leftClosedRange, rightClosedRange] = parseRangesFromHunkHeader(line);
+            const hunk = {
+                leftRange: leftClosedRange,
+                leftFile: currentLeftFile,
+                rightRange: rightClosedRange,
+                rightFile: currentRightFile,
                 additions: [],
-                deletions: [],
-                rightFile: currentFile
+                deletions: []
             };
-            hunks.push(currentHunk);
+            hunks.push(hunk);
+            currentHunk = hunk;
         }
-        else if (currentHunk === undefined) {
-            continue;
-        }
-        if (line.startsWith(hunkHeaderSep)) {
-            currentHunk.rightRange = parseRangeFromHunkHeader(line);
-        }
-        else if (line.startsWith(addedPrefix)) {
-            currentHunk.additions.push(line.substr(addedPrefix.length));
-        }
-        else if (line.startsWith(deletedPrefix)) {
-            currentHunk.deletions.push(line.substr(deletedPrefix.length));
-        }
-        else {
-            currentHunk = undefined;
+        else if (currentHunk !== undefined) {
+            if (line.startsWith(addedPrefix)) {
+                currentHunk.additions.push(line.substr(addedPrefix.length));
+            }
+            else if (line.startsWith(deletedPrefix)) {
+                currentHunk.deletions.push(line.substr(deletedPrefix.length));
+            }
+            else {
+                currentHunk = undefined;
+            }
         }
     }
     return hunks;
 }
 exports.parseDiffHunks = parseDiffHunks;
-function parseRangeFromHunkHeader(hunkHeader) {
+function parseRangesFromHunkHeader(hunkHeader) {
     const matches = hunkHeader.match(HUNK_HEADER_REGEX);
     if (matches !== null) {
-        const startLine = Number(matches[1]);
-        const numLines = matches[2];
-        const endLine = Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
-        return { start: startLine, end: endLine };
+        const leftRange = createDiffRange(matches[1], matches[2]);
+        const rightRange = createDiffRange(matches[3], matches[4]);
+        if (rightRange === undefined) {
+            throw new Error('Could not parse right range');
+        }
+        return [leftRange, rightRange];
     }
     else {
         throw Error(`bad hunk header: ${hunkHeader}`);
+    }
+}
+function createDiffRange(startUnparsed, numLinesUnparsed) {
+    const startLine = Number(startUnparsed);
+    if (numLinesUnparsed === undefined) {
+        // if the amount of lines is undefined, it means that the end line and
+        // start line are the same
+        return { start: startLine, end: startLine };
+    }
+    else if (Number(numLinesUnparsed) === 0) {
+        // if the amount of lines is 0, it means that we have the empty range
+        return undefined;
+    }
+    else {
+        return { start: startLine, end: startLine + Number(numLinesUnparsed) };
     }
 }
 //# sourceMappingURL=git.js.map
