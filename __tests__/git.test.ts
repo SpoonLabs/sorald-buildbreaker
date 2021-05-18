@@ -274,3 +274,31 @@ test(`parseDiffHunks correctly parses diff hunks from two files`, async () => {
   // assert
   expect(actualHunks).toEqual(expectedHunks);
 });
+
+test(`parseDiffHunk correctly parses pure deletion`, async () => {
+  // arrange
+  const diff = `diff --git a/__tests__/git.test.ts b/__tests__/git.test.ts
+index 07b0ae1..f543559 100644
+--- a/__tests__/git.test.ts
++++ b/__tests__/git.test.ts
+@@ -6,2 +5,0 @@ import * as helpers from '../src/test-helpers';
+-import {execWithStdoutCap} from '../src/process-utils';
+-`;
+
+  const expectedHunks = [
+    {
+      leftRange: {start: 6, end: 8},
+      leftFile: '__tests__/git.test.ts',
+      rightRange: undefined,
+      rightFile: '__tests__/git.test.ts',
+      additions: [],
+      deletions: ["import {execWithStdoutCap} from '../src/process-utils';", '']
+    }
+  ];
+
+  // act
+  const actualHunks = git.parseDiffHunks(diff);
+
+  // assert
+  expect(actualHunks).toEqual(expectedHunks);
+});

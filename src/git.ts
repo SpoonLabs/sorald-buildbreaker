@@ -110,6 +110,10 @@ export function parseChangedLines(
   const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
 
   for (const hunk of parseDiffHunks(diff)) {
+    if (hunk.rightRange === undefined) {
+      continue;
+    }
+
     const absPath = path.join(
       worktreeRoot.toString(),
       hunk.rightFile.toString()
@@ -131,7 +135,7 @@ export function parseChangedLines(
 export interface Hunk {
   leftRange: ClosedRange | undefined;
   leftFile: PathLike;
-  rightRange: ClosedRange;
+  rightRange: ClosedRange | undefined;
   rightFile: PathLike;
   additions: string[];
   deletions: string[];
@@ -192,16 +196,11 @@ export function parseDiffHunks(diff: string): Hunk[] {
 
 function parseRangesFromHunkHeader(
   hunkHeader: string
-): [ClosedRange | undefined, ClosedRange] {
+): [ClosedRange?, ClosedRange?] {
   const matches = hunkHeader.match(HUNK_HEADER_REGEX);
   if (matches !== null) {
     const leftRange = createDiffRange(matches[1], matches[2]);
     const rightRange = createDiffRange(matches[3], matches[4]);
-
-    if (rightRange === undefined) {
-      throw new Error('Could not parse right range');
-    }
-
     return [leftRange, rightRange];
   } else {
     throw Error(`bad hunk header: ${hunkHeader}`);

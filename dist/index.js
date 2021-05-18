@@ -124,6 +124,9 @@ exports.init = init;
 function parseChangedLines(diff, worktreeRoot) {
     const fileToRanges = new Map();
     for (const hunk of parseDiffHunks(diff)) {
+        if (hunk.rightRange === undefined) {
+            continue;
+        }
         const absPath = path.join(worktreeRoot.toString(), hunk.rightFile.toString());
         let currentRanges = fileToRanges.get(absPath);
         if (currentRanges === undefined) {
@@ -193,9 +196,6 @@ function parseRangesFromHunkHeader(hunkHeader) {
     if (matches !== null) {
         const leftRange = createDiffRange(matches[1], matches[2]);
         const rightRange = createDiffRange(matches[3], matches[4]);
-        if (rightRange === undefined) {
-            throw new Error('Could not parse right range');
-        }
         return [leftRange, rightRange];
     }
     else {
