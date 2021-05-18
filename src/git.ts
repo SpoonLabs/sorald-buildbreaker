@@ -6,7 +6,7 @@ import {ClosedRange} from './ranges';
 
 import {execWithStdoutCap} from './process-utils';
 
-const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
+const HUNK_HEADER_REGEX = '^@@ .*?\\-(\\d+),?(\\d+)?.*?\\+(\\d+),?(\\d+)? @@';
 
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
@@ -107,36 +107,119 @@ export function parseChangedLines(
   diff: string,
   worktreeRoot: PathLike
 ): Map<PathLike, ClosedRange[]> {
-  const filePathPrefix = '+++ b/';
-  const hunkHeaderSep = '@@';
   const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
-  let currentRanges: ClosedRange[] = [];
 
-  for (const line of diff.split(os.EOL)) {
-    if (line.startsWith(filePathPrefix)) {
-      const currentFile = path.join(
-        worktreeRoot.toString(),
-        line.substr(filePathPrefix.length)
-      );
-      currentRanges = [];
-      fileToRanges.set(currentFile, currentRanges);
-    } else if (line.startsWith(hunkHeaderSep)) {
-      currentRanges.push(parseRangeFromHunkHeader(line));
+  for (const hunk of parseDiffHunks(diff)) {
+    if (hunk.rightRange === undefined) {
+      continue;
     }
+
+    const absPath = path.join(
+      worktreeRoot.toString(),
+      hunk.rightFile.toString()
+    );
+    let currentRanges = fileToRanges.get(absPath);
+    if (currentRanges === undefined) {
+      currentRanges = [];
+    }
+    currentRanges.push(hunk.rightRange);
+    fileToRanges.set(absPath, currentRanges);
   }
 
   return fileToRanges;
 }
 
-function parseRangeFromHunkHeader(hunkHeader: string): ClosedRange {
+/**
+ * A diff hunk.
+ */
+export interface Hunk {
+  leftRange: ClosedRange | undefined;
+  leftFile: PathLike;
+  rightRange: ClosedRange | undefined;
+  rightFile: PathLike;
+  additions: string[];
+  deletions: string[];
+}
+
+/**
+ * Parse diff hunks from a raw diff.
+ *
+ * @param diff - A raw diff
+ * @returns Parsed diff hunks
+ */
+export function parseDiffHunks(diff: string): Hunk[] {
+  const leftFilePrefix = '--- a/';
+  const rightFilePrefix = '+++ b/';
+  const addedPrefix = '+';
+  const deletedPrefix = '-';
+  const hunkHeaderSep = '@@';
+
+  let currentHunk: Hunk | undefined;
+  let currentLeftFile: string | undefined;
+  let currentRightFile: string | undefined;
+  const hunks: Hunk[] = [];
+  for (const line of diff.split(os.EOL)) {
+    if (line.startsWith(leftFilePrefix)) {
+      currentLeftFile = line.substr(leftFilePrefix.length);
+    } else if (line.startsWith(rightFilePrefix)) {
+      currentRightFile = line.substr(rightFilePrefix.length);
+    } else if (
+      line.startsWith(hunkHeaderSep) &&
+      currentLeftFile !== undefined &&
+      currentRightFile !== undefined
+    ) {
+      const [leftClosedRange, rightClosedRange] =
+        parseRangesFromHunkHeader(line);
+      const hunk = {
+        leftRange: leftClosedRange,
+        leftFile: currentLeftFile,
+        rightRange: rightClosedRange,
+        rightFile: currentRightFile,
+        additions: [],
+        deletions: []
+      };
+      hunks.push(hunk);
+      currentHunk = hunk;
+    } else if (currentHunk !== undefined) {
+      if (line.startsWith(addedPrefix)) {
+        currentHunk.additions.push(line.substr(addedPrefix.length));
+      } else if (line.startsWith(deletedPrefix)) {
+        currentHunk.deletions.push(line.substr(deletedPrefix.length));
+      } else {
+        currentHunk = undefined;
+      }
+    }
+  }
+
+  return hunks;
+}
+
+function parseRangesFromHunkHeader(
+  hunkHeader: string
+): [ClosedRange?, ClosedRange?] {
   const matches = hunkHeader.match(HUNK_HEADER_REGEX);
   if (matches !== null) {
-    const startLine = Number(matches[1]);
-    const numLines = matches[2];
-    const endLine =
-      Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
-    return {start: startLine, end: endLine};
+    const leftRange = createDiffRange(matches[1], matches[2]);
+    const rightRange = createDiffRange(matches[3], matches[4]);
+    return [leftRange, rightRange];
   } else {
     throw Error(`bad hunk header: ${hunkHeader}`);
+  }
+}
+
+function createDiffRange(
+  startUnparsed: string,
+  numLinesUnparsed: string | undefined
+): ClosedRange | undefined {
+  const startLine = Number(startUnparsed);
+  if (numLinesUnparsed === undefined) {
+    // if the amount of lines is undefined, it means that the end line and
+    // start line are the same
+    return {start: startLine, end: startLine};
+  } else if (Number(numLinesUnparsed) === 0) {
+    // if the amount of lines is 0, it means that we have the empty range
+    return undefined;
+  } else {
+    return {start: startLine, end: startLine + Number(numLinesUnparsed)};
   }
 }
