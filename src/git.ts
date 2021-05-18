@@ -164,9 +164,8 @@ export function parseDiffHunks(diff: string): Hunk[] {
       currentLeftFile !== undefined &&
       currentRightFile !== undefined
     ) {
-      const [leftClosedRange, rightClosedRange] = parseRangesFromHunkHeader(
-        line
-      );
+      const [leftClosedRange, rightClosedRange] =
+        parseRangesFromHunkHeader(line);
       const hunk = {
         leftRange: leftClosedRange,
         leftFile: currentLeftFile,
