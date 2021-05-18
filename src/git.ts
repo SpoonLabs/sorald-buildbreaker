@@ -6,7 +6,7 @@ import {ClosedRange} from './ranges';
 
 import {execWithStdoutCap} from './process-utils';
 
-const HUNK_HEADER_REGEX = '^@@ .*?\\+(\\d+),?(\\d+)? @@';
+const HUNK_HEADER_REGEX = '^@@ .*?\\-(\\d+),?(\\d+)?.*?\\+(\\d+),?(\\d+)? @@';
 
 /**
  * Wrapper class for acting on a Git repository with the Git binary.
@@ -126,10 +126,12 @@ export function parseChangedLines(
 }
 
 export interface Hunk {
+  leftRange: ClosedRange | undefined;
+  leftFile: PathLike;
   rightRange: ClosedRange;
+  rightFile: PathLike;
   additions: string[];
   deletions: string[];
-  rightFile: PathLike;
 }
 
 /**
@@ -139,51 +141,84 @@ export interface Hunk {
  * @returns Parsed diff hunks
  */
 export function parseDiffHunks(diff: string): Hunk[] {
-  const filePathPrefix = '+++ b/';
+  const leftFilePrefix = '--- a/';
+  const rightFilePrefix = '+++ b/';
   const addedPrefix = '+';
   const deletedPrefix = '-';
   const hunkHeaderSep = '@@';
 
   let currentHunk: Hunk | undefined;
-  let currentFile: string | undefined;
+  let currentLeftFile: string | undefined;
+  let currentRightFile: string | undefined;
   const hunks: Hunk[] = [];
   for (const line of diff.split(os.EOL)) {
-    if (line.startsWith(filePathPrefix)) {
-      currentFile = line.substr(filePathPrefix.length);
-    } else if (line.startsWith(hunkHeaderSep) && currentFile !== undefined) {
+    if (line.startsWith(leftFilePrefix)) {
+      currentLeftFile = line.substr(leftFilePrefix.length);
+    } else if (line.startsWith(rightFilePrefix)) {
+      currentRightFile = line.substr(rightFilePrefix.length);
+    } else if (
+      line.startsWith(hunkHeaderSep) &&
+      currentLeftFile !== undefined &&
+      currentRightFile !== undefined
+    ) {
+      const [leftClosedRange, rightClosedRange] = parseRangesFromHunkHeader(
+        line
+      );
       const hunk = {
-        rightRange: parseRangeFromHunkHeader(line),
+        leftRange: leftClosedRange,
+        leftFile: currentLeftFile,
+        rightRange: rightClosedRange,
+        rightFile: currentRightFile,
         additions: [],
-        deletions: [],
-        rightFile: currentFile
+        deletions: []
       };
       hunks.push(hunk);
       currentHunk = hunk;
-    }
-
-    if (currentHunk === undefined) {
-      continue;
-    } else if (line.startsWith(addedPrefix)) {
-      currentHunk.additions.push(line.substr(addedPrefix.length));
-    } else if (line.startsWith(deletedPrefix)) {
-      currentHunk.deletions.push(line.substr(deletedPrefix.length));
-    } else {
-      currentHunk = undefined;
+    } else if (currentHunk !== undefined) {
+      if (line.startsWith(addedPrefix)) {
+        currentHunk.additions.push(line.substr(addedPrefix.length));
+      } else if (line.startsWith(deletedPrefix)) {
+        currentHunk.deletions.push(line.substr(deletedPrefix.length));
+      } else {
+        currentHunk = undefined;
+      }
     }
   }
 
   return hunks;
 }
 
-function parseRangeFromHunkHeader(hunkHeader: string): ClosedRange {
+function parseRangesFromHunkHeader(
+  hunkHeader: string
+): [ClosedRange | undefined, ClosedRange] {
   const matches = hunkHeader.match(HUNK_HEADER_REGEX);
   if (matches !== null) {
-    const startLine = Number(matches[1]);
-    const numLines = matches[2];
-    const endLine =
-      Number(startLine) + (numLines === undefined ? 0 : Number(numLines));
-    return {start: startLine, end: endLine};
+    const leftRange = createDiffRange(matches[1], matches[2]);
+    const rightRange = createDiffRange(matches[3], matches[4]);
+
+    if (rightRange === undefined) {
+      throw new Error('Could not parse right range');
+    }
+
+    return [leftRange, rightRange];
   } else {
     throw Error(`bad hunk header: ${hunkHeader}`);
+  }
+}
+
+function createDiffRange(
+  startUnparsed: string,
+  numLinesUnparsed: string | undefined
+): ClosedRange | undefined {
+  const startLine = Number(startUnparsed);
+  if (numLinesUnparsed === undefined) {
+    // if the amount of lines is undefined, it means that the end line and
+    // start line are the same
+    return {start: startLine, end: startLine};
+  } else if (Number(numLinesUnparsed) === 0) {
+    // if the amount of lines is 0, it means that we have the empty range
+    return undefined;
+  } else {
+    return {start: startLine, end: startLine + Number(numLinesUnparsed)};
   }
 }
