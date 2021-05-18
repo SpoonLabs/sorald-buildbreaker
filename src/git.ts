@@ -142,23 +142,24 @@ export function parseDiffHunks(diff: string): Hunk[] {
   const hunkHeaderSep = '@@';
 
   let currentHunk: Hunk | undefined;
+  let currentFile: string | undefined;
   const hunks: Hunk[] = [];
   for (const line of diff.split(os.EOL)) {
     if (line.startsWith(filePathPrefix)) {
-      const currentFile = line.substr(filePathPrefix.length);
-      currentHunk = {
-        rightRange: {start: -1, end: -1},
+      currentFile = line.substr(filePathPrefix.length);
+    } else if (line.startsWith(hunkHeaderSep) && currentFile !== undefined) {
+      const hunk = {
+        rightRange: parseRangeFromHunkHeader(line),
         additions: [],
         deletions: [],
         rightFile: currentFile
       };
-      hunks.push(currentHunk);
-    } else if (currentHunk === undefined) {
-      continue;
+      hunks.push(hunk);
+      currentHunk = hunk;
     }
 
-    if (line.startsWith(hunkHeaderSep)) {
-      currentHunk.rightRange = parseRangeFromHunkHeader(line);
+    if (currentHunk === undefined) {
+      continue;
     } else if (line.startsWith(addedPrefix)) {
       currentHunk.additions.push(line.substr(addedPrefix.length));
     } else if (line.startsWith(deletedPrefix)) {
