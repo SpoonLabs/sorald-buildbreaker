@@ -134,6 +134,9 @@ export interface Hunk {
 
 /**
  * Parse diff hunks from a raw diff.
+ *
+ * @param diff - A raw diff
+ * @returns Parsed diff hunks
  */
 export function parseDiffHunks(diff: string): Hunk[] {
   const filePathPrefix = '+++ b/';
