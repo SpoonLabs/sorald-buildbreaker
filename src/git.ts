@@ -125,6 +125,9 @@ export function parseChangedLines(
   return fileToRanges;
 }
 
+/**
+ * A diff hunk.
+ */
 export interface Hunk {
   leftRange: ClosedRange | undefined;
   leftFile: PathLike;
