@@ -6,12 +6,7 @@ function range(start: number, end: number): Range {
 
 test('overlapsAny true when identical range is in compare', () => {
   const soughtRange = range(0, 3);
-  const ranges = [
-    range(10, 30),
-    soughtRange,
-    range(4, 10),
-    range(33, 43)
-  ];
+  const ranges = [range(10, 30), soughtRange, range(4, 10), range(33, 43)];
 
   expect(overlapsAny(soughtRange, ranges)).toBe(true);
 });

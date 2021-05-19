@@ -217,7 +217,7 @@ test(`parseChangedLines correctly parses line ranges from two files`, async () =
     [
       path.join(worktreeRoot, 'src/git.ts'),
       [
-        {start: 48, end: 48},
+        {start: 48, end: 48 + 1},
         {start: 51, end: 51 + 2}
       ]
     ]
@@ -234,7 +234,7 @@ test(`parseDiffHunks correctly parses diff hunks from two files`, async () => {
   // arrange
   const expectedHunks = [
     {
-      leftRange: undefined,
+      leftRange: {start: 164, end: 164},
       leftFile: '__tests__/git.test.ts',
       rightRange: {start: 165, end: 165 + 29},
       rightFile: '__tests__/git.test.ts',
@@ -245,9 +245,9 @@ test(`parseDiffHunks correctly parses diff hunks from two files`, async () => {
       deletions: []
     },
     {
-      leftRange: undefined,
+      leftRange: {start: 47, end: 47},
       leftFile: 'src/git.ts',
-      rightRange: {start: 48, end: 48},
+      rightRange: {start: 48, end: 48 + 1},
       rightFile: 'src/git.ts',
       additions: ['   * @param additionalArgs - Additional arguments'],
       deletions: []
@@ -289,7 +289,7 @@ index 07b0ae1..f543559 100644
     {
       leftRange: {start: 6, end: 8},
       leftFile: '__tests__/git.test.ts',
-      rightRange: undefined,
+      rightRange: {start: 5, end: 5},
       rightFile: '__tests__/git.test.ts',
       additions: [],
       deletions: ["import {execWithStdoutCap} from '../src/process-utils';", '']
