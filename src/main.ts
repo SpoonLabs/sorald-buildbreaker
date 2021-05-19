@@ -210,7 +210,7 @@ async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
     const endLine = ps.linesToReplace.end - 1;
 
     const lineArgs =
-      startLine <= endLine
+      endLine <= startLine
         ? {line: startLine}
         : {start_line: startLine, line: endLine};
 

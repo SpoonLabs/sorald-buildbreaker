@@ -371,7 +371,7 @@ async function postPatchSuggestion(ps) {
     if (pull_request !== undefined) {
         const startLine = ps.linesToReplace.start;
         const endLine = ps.linesToReplace.end - 1;
-        const lineArgs = startLine <= endLine
+        const lineArgs = endLine <= startLine
             ? { line: startLine }
             : { start_line: startLine, line: endLine };
         await octokit.rest.pulls.createReviewComment({
