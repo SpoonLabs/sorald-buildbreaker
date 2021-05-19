@@ -356,16 +356,19 @@ ${hunk.additions.join('\n')}
 }
 async function postPatchSuggestion(ps) {
     const octokit = github.getOctokit(core.getInput('token'));
-    await octokit.rest.pulls.createReviewComment({
-        ...github.context.repo,
-        commit_id: github.context.payload.head.sha,
-        pull_number: github.context.payload.number,
-        body: ps.suggestion,
-        path: ps.file.toString(),
-        start_line: ps.linesToReplace.start,
-        line: ps.linesToReplace.end,
-        start_side: 'RIGHT'
-    });
+    const pull_request = github.context.payload.pull_request;
+    if (pull_request !== undefined) {
+        await octokit.rest.pulls.createReviewComment({
+            ...github.context.repo,
+            commit_id: pull_request.head.sha,
+            pull_number: pull_request.number,
+            body: ps.suggestion,
+            path: ps.file.toString(),
+            start_line: ps.linesToReplace.start,
+            line: ps.linesToReplace.end,
+            start_side: 'RIGHT'
+        });
+    }
 }
 async function run() {
     try {
