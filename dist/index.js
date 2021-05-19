@@ -358,7 +358,7 @@ function generatePatchSuggestion(hunk, spec, sha) {
         file: hunk.leftFile,
         suggestion: `To fix violation '${spec}', Sorald suggests the following:
 \`\`\`suggestion
-$(hunk.additions.join('\n'))
+${hunk.additions.join('\n')}
 \`\`\``,
         violationSpec: spec,
         commitSha: sha
