@@ -358,6 +358,15 @@ async function postPatchSuggestion(ps) {
     const octokit = github.getOctokit(core.getInput('token'));
     const pull_request = github.context.payload.pull_request;
     if (pull_request !== undefined) {
+        console.log({
+            commit_id: pull_request.head.sha,
+            pull_number: pull_request.number,
+            body: ps.suggestion,
+            path: ps.file.toString(),
+            start_line: ps.linesToReplace.start,
+            line: ps.linesToReplace.end,
+            start_side: 'RIGHT'
+        });
         await octokit.rest.pulls.createReviewComment({
             ...github.context.repo,
             commit_id: pull_request.head.sha,
