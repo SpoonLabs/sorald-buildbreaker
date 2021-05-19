@@ -188,9 +188,20 @@ $(hunk.additions.join('\n'))
 
 async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'));
-  core.info(github.context.sha);
+  console.log({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    commit_id: ps.commitSha,
+    pull_number: github.context.payload.number as number,
+    body: ps.suggestion,
+    path: ps.file.toString(),
+    start_line: ps.linesToReplace.start,
+    line: ps.linesToReplace.end,
+    start_side: 'RIGHT'
+  });
   await octokit.rest.pulls.createReviewComment({
-    ...github.context.repo,
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
     commit_id: ps.commitSha,
     pull_number: github.context.payload.number,
     body: ps.suggestion,
