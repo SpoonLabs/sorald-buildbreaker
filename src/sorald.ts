@@ -128,13 +128,16 @@ function parseRepairedViolations(repairData: RepairData): string[] {
  * Parse the lines of a rule violation.
  *
  * @param violationSpec - A violation specifier
- * @returns A closed range with the start and end lines of the violation
+ * @returns The line range that the violation spans
  */
 export function parseAffectedLines(violationSpec: string): Range {
   const startLineIdx = 2;
   const endLineIdx = startLineIdx + 2;
   const parts = violationSpec.split(path.delimiter);
-  return {start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx])};
+  return {
+    start: Number(parts[startLineIdx]),
+    end: Number(parts[endLineIdx]) + 1
+  };
 }
 
 /**
