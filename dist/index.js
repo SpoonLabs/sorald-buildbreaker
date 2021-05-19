@@ -349,7 +349,7 @@ async function generatePatchSuggestions(soraldJar, source, violationSpecs) {
 async function generatePatchSuggestion(hunk, spec, localFile) {
     const suggestionAdditions = hunk.additions.join('\n');
     const suggestion = hunk.leftRange.start === hunk.leftRange.end
-        ? `${suggestionAdditions}\n${await readLine(localFile, hunk.leftRange.start)}`
+        ? `${await readLine(localFile, hunk.leftRange.start)}\n${suggestionAdditions}`
         : suggestionAdditions;
     return {
         linesToReplace: hunk.leftRange,

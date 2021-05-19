@@ -180,10 +180,10 @@ async function generatePatchSuggestion(
   const suggestionAdditions = hunk.additions.join('\n');
   const suggestion =
     hunk.leftRange.start === hunk.leftRange.end
-      ? `${suggestionAdditions}\n${await readLine(
+      ? `${await readLine(
           localFile,
           hunk.leftRange.start
-        )}`
+        )}\n${suggestionAdditions}`
       : suggestionAdditions;
   return {
     linesToReplace: hunk.leftRange,
