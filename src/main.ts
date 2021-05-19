@@ -181,7 +181,7 @@ async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'));
   await octokit.rest.pulls.createReviewComment({
     ...github.context.repo,
-    commit_id: github.context.sha,
+    commit_id: github.context.payload.head.sha,
     pull_number: github.context.payload.number,
     body: ps.suggestion,
     path: ps.file.toString(),
