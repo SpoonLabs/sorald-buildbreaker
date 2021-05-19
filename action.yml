@@ -12,6 +12,9 @@ inputs:
   ratchet-from:
     description: 'Commit-ish to ratchet from, typically origin/master or origin/main)'
     required: false
+  token:
+    description: 'Token to post comments with'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
