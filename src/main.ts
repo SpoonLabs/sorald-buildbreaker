@@ -145,15 +145,22 @@ async function generatePatchSuggestions(
   violationSpecs: string[]
 ): Promise<PatchSuggestion[]> {
   const repo = new git.Repo(source);
+  const worktreeRoot = repo.getWorktreeRoot();
   const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
 
-  let allSuggestions: PatchSuggestion[] = [];
+  const allSuggestions: PatchSuggestion[] = [];
   for (const spec of violationSpecs) {
     await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
     const diff = await repo.diff();
     const hunks = git.parseDiffHunks(diff);
-    const suggestions = hunks.map(hunk => generatePatchSuggestion(hunk, spec));
-    allSuggestions = allSuggestions.concat(suggestions);
+    for (const hunk of hunks) {
+      const suggestion = await generatePatchSuggestion(
+        hunk,
+        spec,
+        path.join(worktreeRoot.toString(), hunk.leftFile.toString())
+      );
+      allSuggestions.push(suggestion);
+    }
   }
   return allSuggestions;
 }
@@ -165,41 +172,55 @@ interface PatchSuggestion {
   violationSpec: string;
 }
 
-function generatePatchSuggestion(hunk: Hunk, spec: string): PatchSuggestion {
+async function generatePatchSuggestion(
+  hunk: Hunk,
+  spec: string,
+  localFile: PathLike
+): Promise<PatchSuggestion> {
+  const suggestionAdditions = hunk.additions.join('\n');
+  const suggestion =
+    hunk.leftRange.start === hunk.leftRange.end
+      ? `${suggestionAdditions}\n${await readLine(
+          localFile,
+          hunk.leftRange.start
+        )}`
+      : suggestionAdditions;
   return {
     linesToReplace: hunk.leftRange,
     file: hunk.leftFile,
     suggestion: `To fix violation '${spec}', Sorald suggests the following:
 \`\`\`suggestion
-${hunk.additions.join('\n')}
+${suggestion}
 \`\`\``,
     violationSpec: spec
   };
 }
 
+async function readLine(filepath: PathLike, line: number): Promise<string> {
+  const content = await fs.promises.readFile(filepath, {encoding: 'utf8'});
+  return content.toString().split('\n')[line - 1];
+}
+
 async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'));
-
   const pull_request = github.context.payload.pull_request;
 
   if (pull_request !== undefined) {
-    console.log({
-      commit_id: pull_request.head.sha,
-      pull_number: pull_request.number,
-      body: ps.suggestion,
-      path: ps.file.toString(),
-      start_line: ps.linesToReplace.start,
-      line: ps.linesToReplace.end,
-      start_side: 'RIGHT'
-    });
+    const startLine = ps.linesToReplace.start;
+    const endLine = ps.linesToReplace.end - 1;
+
+    const lineArgs =
+      startLine <= endLine
+        ? {line: startLine}
+        : {start_line: startLine, line: endLine};
+
     await octokit.rest.pulls.createReviewComment({
       ...github.context.repo,
+      ...lineArgs,
       commit_id: pull_request.head.sha,
       pull_number: pull_request.number,
       body: ps.suggestion,
       path: ps.file.toString(),
-      start_line: ps.linesToReplace.start,
-      line: ps.linesToReplace.end,
       start_side: 'RIGHT'
     });
   }
