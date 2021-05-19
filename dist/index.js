@@ -332,7 +332,7 @@ function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
 }
 async function generatePatchSuggestions(soraldJar, source, violationSpecs) {
     const repo = new git.Repo(source);
-    const worktreeRoot = repo.getWorktreeRoot();
+    const worktreeRoot = await repo.getWorktreeRoot();
     const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
     const allSuggestions = [];
     for (const spec of violationSpecs) {

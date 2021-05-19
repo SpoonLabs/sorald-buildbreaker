@@ -145,7 +145,7 @@ async function generatePatchSuggestions(
   violationSpecs: string[]
 ): Promise<PatchSuggestion[]> {
   const repo = new git.Repo(source);
-  const worktreeRoot = repo.getWorktreeRoot();
+  const worktreeRoot = await repo.getWorktreeRoot();
   const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
 
   const allSuggestions: PatchSuggestion[] = [];
