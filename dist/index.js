@@ -204,18 +204,8 @@ function parseRangesFromHunkHeader(hunkHeader) {
 }
 function createDiffRange(startUnparsed, numLinesUnparsed) {
     const startLine = Number(startUnparsed);
-    if (numLinesUnparsed === undefined) {
-        // if the amount of lines is undefined, it means that the end line and
-        // start line are the same
-        return { start: startLine, end: startLine };
-    }
-    else if (Number(numLinesUnparsed) === 0) {
-        // if the amount of lines is 0, it means that we have the empty range
-        return undefined;
-    }
-    else {
-        return { start: startLine, end: startLine + Number(numLinesUnparsed) };
-    }
+    const numLines = numLinesUnparsed === undefined ? 1 : Number(numLinesUnparsed);
+    return { start: startLine, end: startLine + numLines };
 }
 //# sourceMappingURL=git.js.map
 
