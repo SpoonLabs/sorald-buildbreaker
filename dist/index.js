@@ -83,6 +83,14 @@ class Repo {
         return (await this.gitExec(['rev-parse', '--show-toplevel'])).trimEnd();
     }
     /**
+     * Get the current commit sha.
+     *
+     * @returns Fulfills with the current commit sha.
+     */
+    async getHeadCommitSha() {
+        return (await this.gitExec(['rev-parse', 'HEAD'])).trimEnd();
+    }
+    /**
      * Execute the given command with Git and return the stdout output.
      */
     async gitExec(args) {
@@ -332,18 +340,19 @@ function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
 }
 async function generatePatchSuggestions(soraldJar, source, violationSpecs) {
     const repo = new git.Repo(source);
+    const commitSha = await repo.getHeadCommitSha();
     const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
     let allSuggestions = [];
     for (const spec of violationSpecs) {
         await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
         const diff = await repo.diff();
         const hunks = git.parseDiffHunks(diff);
-        const suggestions = hunks.map(hunk => generatePatchSuggestion(hunk, spec));
+        const suggestions = hunks.map(hunk => generatePatchSuggestion(hunk, spec, commitSha));
         allSuggestions = allSuggestions.concat(suggestions);
     }
     return allSuggestions;
 }
-function generatePatchSuggestion(hunk, spec) {
+function generatePatchSuggestion(hunk, spec, sha) {
     return {
         linesToReplace: hunk.leftRange,
         file: hunk.leftFile,
@@ -351,15 +360,16 @@ function generatePatchSuggestion(hunk, spec) {
 \`\`\`suggestion
 $(hunk.additions.join('\n'))
 \`\`\``,
-        violationSpec: spec
+        violationSpec: spec,
+        commitSha: sha
     };
 }
 async function postPatchSuggestion(ps) {
     const octokit = github.getOctokit(core.getInput('token'));
-    console.log(github.context.sha);
+    core.info(github.context.sha);
     await octokit.rest.pulls.createReviewComment({
         ...github.context.repo,
-        commit_id: github.context.sha,
+        commit_id: ps.commitSha,
         pull_number: github.context.payload.number,
         body: ps.suggestion,
         path: ps.file.toString(),
