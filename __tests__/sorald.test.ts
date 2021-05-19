@@ -7,5 +7,8 @@ test('parseAffectedLines returns correct range', () => {
 
   const range = sorald.parseAffectedLines(violationSpec);
 
-  expect(range).toEqual({start: startLine, end: endLine});
+  // note that Range is right-exclusive
+  const expectedRange = {start: startLine, end: endLine + 1};
+
+  expect(range).toEqual(expectedRange);
 });

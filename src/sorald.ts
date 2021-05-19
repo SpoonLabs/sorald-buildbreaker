@@ -2,7 +2,7 @@ import {exec} from '@actions/exec';
 import * as fs from 'fs';
 import {PathLike} from 'fs';
 import * as path from 'path';
-import {ClosedRange} from './ranges';
+import {Range} from './ranges';
 
 interface WarningLocation {
   violationSpecifier: string;
@@ -128,13 +128,16 @@ function parseRepairedViolations(repairData: RepairData): string[] {
  * Parse the lines of a rule violation.
  *
  * @param violationSpec - A violation specifier
- * @returns A closed range with the start and end lines of the violation
+ * @returns The line range that the violation spans
  */
-export function parseAffectedLines(violationSpec: string): ClosedRange {
+export function parseAffectedLines(violationSpec: string): Range {
   const startLineIdx = 2;
   const endLineIdx = startLineIdx + 2;
   const parts = violationSpec.split(path.delimiter);
-  return {start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx])};
+  return {
+    start: Number(parts[startLineIdx]),
+    end: Number(parts[endLineIdx]) + 1
+  };
 }
 
 /**

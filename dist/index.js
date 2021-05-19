@@ -164,11 +164,11 @@ function parseDiffHunks(diff) {
         else if (line.startsWith(hunkHeaderSep) &&
             currentLeftFile !== undefined &&
             currentRightFile !== undefined) {
-            const [leftClosedRange, rightClosedRange] = parseRangesFromHunkHeader(line);
+            const [lRange, rRange] = parseRangesFromHunkHeader(line);
             const hunk = {
-                leftRange: leftClosedRange,
+                leftRange: lRange,
                 leftFile: currentLeftFile,
-                rightRange: rightClosedRange,
+                rightRange: rRange,
                 rightFile: currentRightFile,
                 additions: [],
                 deletions: []
@@ -204,18 +204,8 @@ function parseRangesFromHunkHeader(hunkHeader) {
 }
 function createDiffRange(startUnparsed, numLinesUnparsed) {
     const startLine = Number(startUnparsed);
-    if (numLinesUnparsed === undefined) {
-        // if the amount of lines is undefined, it means that the end line and
-        // start line are the same
-        return { start: startLine, end: startLine };
-    }
-    else if (Number(numLinesUnparsed) === 0) {
-        // if the amount of lines is 0, it means that we have the empty range
-        return undefined;
-    }
-    else {
-        return { start: startLine, end: startLine + Number(numLinesUnparsed) };
-    }
+    const numLines = numLinesUnparsed === undefined ? 1 : Number(numLinesUnparsed);
+    return { start: startLine, end: startLine + numLines };
 }
 //# sourceMappingURL=git.js.map
 
@@ -423,8 +413,8 @@ exports.overlapsAny = overlapsAny;
  * @returns true if the ranges overlap
  */
 function rangesOverlap(lhs, rhs) {
-    return ((lhs.start <= rhs.start && lhs.end >= rhs.start) ||
-        (rhs.start <= lhs.start && rhs.end >= lhs.start));
+    return ((lhs.start <= rhs.start && lhs.end - 1 >= rhs.start) ||
+        (rhs.start <= lhs.start && rhs.end - 1 >= lhs.start));
 }
 //# sourceMappingURL=ranges.js.map
 
@@ -540,13 +530,16 @@ function parseRepairedViolations(repairData) {
  * Parse the lines of a rule violation.
  *
  * @param violationSpec - A violation specifier
- * @returns A closed range with the start and end lines of the violation
+ * @returns The line range that the violation spans
  */
 function parseAffectedLines(violationSpec) {
     const startLineIdx = 2;
     const endLineIdx = startLineIdx + 2;
     const parts = violationSpec.split(path.delimiter);
-    return { start: Number(parts[startLineIdx]), end: Number(parts[endLineIdx]) };
+    return {
+        start: Number(parts[startLineIdx]),
+        end: Number(parts[endLineIdx]) + 1
+    };
 }
 exports.parseAffectedLines = parseAffectedLines;
 /**
