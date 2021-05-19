@@ -1,7 +1,8 @@
 /**
- * A closed range on the form [start, end].
+ * A range on the form [start, end), i.e. inclusive in the left end and
+ * exclusive in the right end.
  */
-export interface ClosedRange {
+export interface Range {
   start: number;
   end: number;
 }
@@ -15,10 +16,7 @@ export interface ClosedRange {
  * @returns true if there is any range in compare that overlaps with the sought
  * range
  */
-export function overlapsAny(
-  soughtRange: ClosedRange,
-  compare: ClosedRange[]
-): boolean {
+export function overlapsAny(soughtRange: Range, compare: Range[]): boolean {
   return compare.find(range => rangesOverlap(soughtRange, range)) !== undefined;
 }
 
@@ -29,9 +27,9 @@ export function overlapsAny(
  * @param rhs - A range
  * @returns true if the ranges overlap
  */
-function rangesOverlap(lhs: ClosedRange, rhs: ClosedRange): boolean {
+function rangesOverlap(lhs: Range, rhs: Range): boolean {
   return (
-    (lhs.start <= rhs.start && lhs.end >= rhs.start) ||
-    (rhs.start <= lhs.start && rhs.end >= lhs.start)
+    (lhs.start <= rhs.start && lhs.end - 1 >= rhs.start) ||
+    (rhs.start <= lhs.start && rhs.end - 1 >= lhs.start)
   );
 }

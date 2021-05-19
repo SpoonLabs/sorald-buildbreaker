@@ -164,11 +164,11 @@ function parseDiffHunks(diff) {
         else if (line.startsWith(hunkHeaderSep) &&
             currentLeftFile !== undefined &&
             currentRightFile !== undefined) {
-            const [leftClosedRange, rightClosedRange] = parseRangesFromHunkHeader(line);
+            const [lRange, rRange] = parseRangesFromHunkHeader(line);
             const hunk = {
-                leftRange: leftClosedRange,
+                leftRange: lRange,
                 leftFile: currentLeftFile,
-                rightRange: rightClosedRange,
+                rightRange: rRange,
                 rightFile: currentRightFile,
                 additions: [],
                 deletions: []
@@ -423,8 +423,8 @@ exports.overlapsAny = overlapsAny;
  * @returns true if the ranges overlap
  */
 function rangesOverlap(lhs, rhs) {
-    return ((lhs.start <= rhs.start && lhs.end >= rhs.start) ||
-        (rhs.start <= lhs.start && rhs.end >= lhs.start));
+    return ((lhs.start <= rhs.start && lhs.end - 1 >= rhs.start) ||
+        (rhs.start <= lhs.start && rhs.end - 1 >= lhs.start));
 }
 //# sourceMappingURL=ranges.js.map
 

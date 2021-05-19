@@ -10,7 +10,7 @@ import * as sorald from './sorald';
 import * as ranges from './ranges';
 
 import * as git from './git';
-import {ClosedRange} from './ranges';
+import {Range} from './ranges';
 
 const pipeline = promisify(stream.pipeline);
 
@@ -116,7 +116,7 @@ async function filterKeyToSpecsByRatchet(
  */
 function filterViolationSpecsByRatchet(
   violationSpecs: string[],
-  changedLines: Map<PathLike, ClosedRange[]> | undefined,
+  changedLines: Map<PathLike, Range[]> | undefined,
   source: PathLike
 ): string[] {
   if (changedLines === undefined) {

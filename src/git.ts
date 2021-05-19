@@ -2,7 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import {exec} from '@actions/exec';
 import {PathLike} from 'fs';
-import {ClosedRange} from './ranges';
+import {Range} from './ranges';
 
 import {execWithStdoutCap} from './process-utils';
 
@@ -106,8 +106,8 @@ export async function init(repoRoot: PathLike): Promise<Repo> {
 export function parseChangedLines(
   diff: string,
   worktreeRoot: PathLike
-): Map<PathLike, ClosedRange[]> {
-  const fileToRanges: Map<PathLike, ClosedRange[]> = new Map();
+): Map<PathLike, Range[]> {
+  const fileToRanges: Map<PathLike, Range[]> = new Map();
 
   for (const hunk of parseDiffHunks(diff)) {
     if (hunk.rightRange === undefined) {
@@ -133,9 +133,9 @@ export function parseChangedLines(
  * A diff hunk.
  */
 export interface Hunk {
-  leftRange: ClosedRange | undefined;
+  leftRange: Range | undefined;
   leftFile: PathLike;
-  rightRange: ClosedRange | undefined;
+  rightRange: Range | undefined;
   rightFile: PathLike;
   additions: string[];
   deletions: string[];
@@ -168,12 +168,11 @@ export function parseDiffHunks(diff: string): Hunk[] {
       currentLeftFile !== undefined &&
       currentRightFile !== undefined
     ) {
-      const [leftClosedRange, rightClosedRange] =
-        parseRangesFromHunkHeader(line);
+      const [lRange, rRange] = parseRangesFromHunkHeader(line);
       const hunk = {
-        leftRange: leftClosedRange,
+        leftRange: lRange,
         leftFile: currentLeftFile,
-        rightRange: rightClosedRange,
+        rightRange: rRange,
         rightFile: currentRightFile,
         additions: [],
         deletions: []
@@ -194,9 +193,7 @@ export function parseDiffHunks(diff: string): Hunk[] {
   return hunks;
 }
 
-function parseRangesFromHunkHeader(
-  hunkHeader: string
-): [ClosedRange?, ClosedRange?] {
+function parseRangesFromHunkHeader(hunkHeader: string): [Range?, Range?] {
   const matches = hunkHeader.match(HUNK_HEADER_REGEX);
   if (matches !== null) {
     const leftRange = createDiffRange(matches[1], matches[2]);
@@ -210,7 +207,7 @@ function parseRangesFromHunkHeader(
 function createDiffRange(
   startUnparsed: string,
   numLinesUnparsed: string | undefined
-): ClosedRange | undefined {
+): Range | undefined {
   const startLine = Number(startUnparsed);
   if (numLinesUnparsed === undefined) {
     // if the amount of lines is undefined, it means that the end line and
