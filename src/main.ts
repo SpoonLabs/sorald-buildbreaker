@@ -5,12 +5,17 @@ import {PathLike} from 'fs';
 import got from 'got';
 import {promisify} from 'util';
 import * as stream from 'stream';
+import * as github from '@actions/github';
+import * as Webhooks from '@octokit/webhooks';
 
 import * as sorald from './sorald';
 import * as ranges from './ranges';
 
 import * as git from './git';
+import {Hunk} from './git';
 import {Range} from './ranges';
+
+const JAR_DST_PATH = 'sorald.jar';
 
 const pipeline = promisify(stream.pipeline);
 
@@ -32,15 +37,14 @@ export async function runSorald(
   ratchetFrom?: string
 ): Promise<string[]> {
   const sourceAbsPath = path.resolve(source.toString());
-  const jarDstPath = 'sorald.jar';
   const repo = new git.Repo(sourceAbsPath);
 
-  core.info(`Downloading Sorald jar to ${jarDstPath}`);
-  await download(soraldJarUrl, jarDstPath);
+  core.info(`Downloading Sorald jar to ${JAR_DST_PATH}`);
+  await download(soraldJarUrl, JAR_DST_PATH);
 
   core.info(`Mining rule violations at ${sourceAbsPath}`);
   const unfilteredKeyToSpecs: Map<number, string[]> = await sorald.mine(
-    jarDstPath,
+    JAR_DST_PATH,
     sourceAbsPath,
     'stats.json'
   );
@@ -59,7 +63,7 @@ export async function runSorald(
       core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
       const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
       const repairs = await sorald.repair(
-        jarDstPath,
+        JAR_DST_PATH,
         sourceAbsPath,
         statsFile,
         violationSpecs
@@ -70,6 +74,7 @@ export async function runSorald(
   } else {
     core.info('No violations found');
   }
+
   return allRepairs;
 }
 
@@ -134,6 +139,58 @@ function filterViolationSpecsByRatchet(
   });
 }
 
+async function generatePatchSuggestions(
+  soraldJar: PathLike,
+  source: PathLike,
+  violationSpecs: string[]
+): Promise<PatchSuggestion[]> {
+  const repo = new git.Repo(source);
+  const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
+
+  let allSuggestions: PatchSuggestion[] = [];
+  for (const spec of violationSpecs) {
+    await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
+    const diff = await repo.diff();
+    const hunks = git.parseDiffHunks(diff);
+    const suggestions = hunks.map(hunk => generatePatchSuggestion(hunk, spec));
+    allSuggestions = allSuggestions.concat(suggestions);
+  }
+  return allSuggestions;
+}
+
+interface PatchSuggestion {
+  linesToReplace: Range;
+  file: PathLike;
+  suggestion: string;
+  violationSpec: string;
+}
+
+function generatePatchSuggestion(hunk: Hunk, spec: string): PatchSuggestion {
+  return {
+    linesToReplace: hunk.leftRange,
+    file: hunk.leftFile,
+    suggestion: `To fix violation '${spec}', Sorald suggests the following:
+\`\`\`suggestion
+$(hunk.additions.join('\n'))
+\`\`\``,
+    violationSpec: spec
+  };
+}
+
+async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
+  const octokit = github.getOctokit(core.getInput('token'));
+  await octokit.rest.pulls.createReviewComment({
+    ...github.context.repo,
+    commit_id: github.context.sha,
+    pull_number: github.context.payload.number,
+    body: ps.suggestion,
+    path: ps.file.toString(),
+    start_line: ps.linesToReplace.start,
+    line: ps.linesToReplace.end,
+    start_side: 'RIGHT'
+  });
+}
+
 async function run(): Promise<void> {
   try {
     const source: PathLike = core.getInput('source');
@@ -144,6 +201,15 @@ async function run(): Promise<void> {
       soraldJarUrl,
       ratchetFrom ? ratchetFrom : undefined
     );
+
+    const patchSuggestions = await generatePatchSuggestions(
+      JAR_DST_PATH,
+      source,
+      repairedViolations
+    );
+    for (const ps of patchSuggestions) {
+      await postPatchSuggestion(ps);
+    }
 
     if (repairedViolations.length > 0) {
       core.setFailed(
