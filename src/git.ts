@@ -67,15 +67,6 @@ export class Repo {
   }
 
   /**
-   * Get the current commit sha.
-   *
-   * @returns Fulfills with the current commit sha.
-   */
-  async getHeadCommitSha(): Promise<string> {
-    return (await this.gitExec(['rev-parse', 'HEAD'])).trimEnd();
-  }
-
-  /**
    * Execute the given command with Git and return the stdout output.
    */
   private async gitExec(args: string[]): Promise<string> {

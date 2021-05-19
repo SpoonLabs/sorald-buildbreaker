@@ -145,7 +145,6 @@ async function generatePatchSuggestions(
   violationSpecs: string[]
 ): Promise<PatchSuggestion[]> {
   const repo = new git.Repo(source);
-  const commitSha = await repo.getHeadCommitSha();
   const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
 
   let allSuggestions: PatchSuggestion[] = [];
@@ -153,9 +152,7 @@ async function generatePatchSuggestions(
     await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
     const diff = await repo.diff();
     const hunks = git.parseDiffHunks(diff);
-    const suggestions = hunks.map(hunk =>
-      generatePatchSuggestion(hunk, spec, commitSha)
-    );
+    const suggestions = hunks.map(hunk => generatePatchSuggestion(hunk, spec));
     allSuggestions = allSuggestions.concat(suggestions);
   }
   return allSuggestions;
@@ -166,14 +163,9 @@ interface PatchSuggestion {
   file: PathLike;
   suggestion: string;
   violationSpec: string;
-  commitSha: string;
 }
 
-function generatePatchSuggestion(
-  hunk: Hunk,
-  spec: string,
-  sha: string
-): PatchSuggestion {
+function generatePatchSuggestion(hunk: Hunk, spec: string): PatchSuggestion {
   return {
     linesToReplace: hunk.leftRange,
     file: hunk.leftFile,
@@ -181,8 +173,7 @@ function generatePatchSuggestion(
 \`\`\`suggestion
 ${hunk.additions.join('\n')}
 \`\`\``,
-    violationSpec: spec,
-    commitSha: sha
+    violationSpec: spec
   };
 }
 
@@ -191,7 +182,7 @@ async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
   core.info(github.context.sha);
   await octokit.rest.pulls.createReviewComment({
     ...github.context.repo,
-    commit_id: ps.commitSha,
+    commit_id: github.context.sha,
     pull_number: github.context.payload.number,
     body: ps.suggestion,
     path: ps.file.toString(),
