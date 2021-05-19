@@ -356,7 +356,6 @@ ${hunk.additions.join('\n')}
 }
 async function postPatchSuggestion(ps) {
     const octokit = github.getOctokit(core.getInput('token'));
-    core.info(github.context.sha);
     await octokit.rest.pulls.createReviewComment({
         ...github.context.repo,
         commit_id: github.context.sha,
