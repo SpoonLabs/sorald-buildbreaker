@@ -8,7 +8,7 @@ inputs:
   sorald-jar-url:
     description: 'URL to a Sorald JAR-file'
     required: true
-    default: 'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar'
+    default: 'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.2.0/sorald-0.2.0-jar-with-dependencies.jar'
   ratchet-from:
     description: 'Commit-ish to ratchet from, typically origin/master or origin/main)'
     required: false
