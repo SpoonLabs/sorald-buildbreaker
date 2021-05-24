@@ -239,22 +239,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runSorald = void 0;
+exports.runSorald = exports.download = void 0;
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const core = __importStar(__nccwpck_require__(2186));
 const got_1 = __importDefault(__nccwpck_require__(3061));
 const util_1 = __nccwpck_require__(1669);
 const stream = __importStar(__nccwpck_require__(2413));
-const github = __importStar(__nccwpck_require__(5438));
 const sorald = __importStar(__nccwpck_require__(4111));
 const ranges = __importStar(__nccwpck_require__(9014));
 const git = __importStar(__nccwpck_require__(3374));
+const suggestions = __importStar(__nccwpck_require__(4476));
 const JAR_DST_PATH = 'sorald.jar';
 const pipeline = util_1.promisify(stream.pipeline);
 async function download(url, dst) {
     return pipeline(got_1.default.stream(url), fs.createWriteStream(dst));
 }
+exports.download = download;
 /**
  * Run sorald and attempt to enact repairs.
  *
@@ -330,70 +331,15 @@ function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
             ranges.overlapsAny(lineRange, changedLinesInFile));
     });
 }
-async function generatePatchSuggestions(soraldJar, source, violationSpecs) {
-    const repo = new git.Repo(source);
-    const worktreeRoot = await repo.getWorktreeRoot();
-    const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
-    const allSuggestions = [];
-    for (const spec of violationSpecs) {
-        await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
-        const diff = await repo.diff();
-        const hunks = git.parseDiffHunks(diff);
-        for (const hunk of hunks) {
-            const suggestion = await generatePatchSuggestion(hunk, spec, path.join(worktreeRoot.toString(), hunk.leftFile.toString()));
-            allSuggestions.push(suggestion);
-        }
-    }
-    return allSuggestions;
-}
-async function generatePatchSuggestion(hunk, spec, localFile) {
-    const suggestionAdditions = hunk.additions.join('\n');
-    const suggestion = hunk.leftRange.start === hunk.leftRange.end
-        ? `${await readLine(localFile, hunk.leftRange.start)}\n${suggestionAdditions}`
-        : suggestionAdditions;
-    return {
-        linesToReplace: hunk.leftRange,
-        file: hunk.leftFile,
-        suggestion: `To fix violation '${spec}', Sorald suggests the following:
-\`\`\`suggestion
-${suggestion}
-\`\`\``,
-        violationSpec: spec
-    };
-}
-async function readLine(filepath, line) {
-    const content = await fs.promises.readFile(filepath, { encoding: 'utf8' });
-    return content.toString().split('\n')[line - 1];
-}
-async function postPatchSuggestion(ps) {
-    const octokit = github.getOctokit(core.getInput('token'));
-    const pull_request = github.context.payload.pull_request;
-    if (pull_request !== undefined) {
-        const startLine = ps.linesToReplace.start;
-        const endLine = ps.linesToReplace.end - 1;
-        const lineArgs = endLine <= startLine
-            ? { line: startLine }
-            : { start_line: startLine, line: endLine };
-        await octokit.rest.pulls.createReviewComment({
-            ...github.context.repo,
-            ...lineArgs,
-            commit_id: pull_request.head.sha,
-            pull_number: pull_request.number,
-            body: ps.suggestion,
-            path: ps.file.toString(),
-            start_side: 'RIGHT'
-        });
-    }
-}
 async function run() {
     try {
         const source = core.getInput('source');
         const soraldJarUrl = core.getInput('sorald-jar-url');
         const ratchetFrom = core.getInput('ratchet-from');
         const repairedViolations = await runSorald(source, soraldJarUrl, ratchetFrom ? ratchetFrom : undefined);
-        const patchSuggestions = await generatePatchSuggestions(JAR_DST_PATH, source, repairedViolations);
+        const patchSuggestions = await suggestions.generatePatchSuggestions(JAR_DST_PATH, source, repairedViolations);
         for (const ps of patchSuggestions) {
-            await postPatchSuggestion(ps);
+            await suggestions.postPatchSuggestion(ps);
         }
         if (repairedViolations.length > 0) {
             core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
@@ -613,6 +559,101 @@ function parseFilePath(violationSpec) {
 }
 exports.parseFilePath = parseFilePath;
 //# sourceMappingURL=sorald.js.map
+
+/***/ }),
+
+/***/ 4476:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.postPatchSuggestion = exports.generatePatchSuggestions = void 0;
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
+const github = __importStar(__nccwpck_require__(5438));
+const core = __importStar(__nccwpck_require__(2186));
+const sorald = __importStar(__nccwpck_require__(4111));
+const git = __importStar(__nccwpck_require__(3374));
+const git_1 = __nccwpck_require__(3374);
+async function generatePatchSuggestions(soraldJar, source, violationSpecs) {
+    const repo = new git_1.Repo(source);
+    const worktreeRoot = await repo.getWorktreeRoot();
+    const throwawayStatsFile = '__sorald_throwaway_stats_file.json';
+    const allSuggestions = [];
+    for (const spec of violationSpecs) {
+        await sorald.repair(soraldJar, source, throwawayStatsFile, [spec]);
+        const diff = await repo.diff();
+        const hunks = git.parseDiffHunks(diff);
+        for (const hunk of hunks) {
+            const suggestion = await generatePatchSuggestion(hunk, spec, path.join(worktreeRoot.toString(), hunk.leftFile.toString()));
+            allSuggestions.push(suggestion);
+        }
+        await repo.restore();
+    }
+    return allSuggestions;
+}
+exports.generatePatchSuggestions = generatePatchSuggestions;
+async function generatePatchSuggestion(hunk, spec, localFile) {
+    const suggestionAdditions = hunk.additions.join('\n');
+    const suggestion = hunk.leftRange.start === hunk.leftRange.end
+        ? `${await readLine(localFile, hunk.leftRange.start)}\n${suggestionAdditions}`
+        : suggestionAdditions;
+    return {
+        linesToReplace: hunk.leftRange,
+        file: hunk.leftFile,
+        suggestion: `To fix violation '${spec}', Sorald suggests the following:
+\`\`\`suggestion
+${suggestion}
+\`\`\``,
+        violationSpec: spec
+    };
+}
+async function readLine(filepath, line) {
+    const content = await fs.promises.readFile(filepath, { encoding: 'utf8' });
+    return content.toString().split('\n')[line - 1];
+}
+async function postPatchSuggestion(ps) {
+    const octokit = github.getOctokit(core.getInput('token'));
+    const pull_request = github.context.payload.pull_request;
+    if (pull_request !== undefined) {
+        const startLine = ps.linesToReplace.start;
+        const endLine = ps.linesToReplace.end - 1;
+        const lineArgs = endLine <= startLine
+            ? { line: startLine }
+            : { start_line: startLine, line: endLine };
+        await octokit.rest.pulls.createReviewComment({
+            ...github.context.repo,
+            ...lineArgs,
+            commit_id: pull_request.head.sha,
+            pull_number: pull_request.number,
+            body: ps.suggestion,
+            path: ps.file.toString(),
+            start_side: 'RIGHT'
+        });
+    }
+}
+exports.postPatchSuggestion = postPatchSuggestion;
+//# sourceMappingURL=suggestions.js.map
 
 /***/ }),
 
