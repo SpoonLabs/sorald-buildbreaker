@@ -71,8 +71,7 @@ async function generatePatchSuggestion(
   return {
     linesToReplace: hunk.leftRange,
     file: hunk.leftFile,
-    suggestion: `To fix violation '${spec}', Sorald suggests the following:
-\`\`\`suggestion
+    suggestion: `\`\`\`suggestion
 ${suggestion}
 \`\`\``,
     violationSpec: spec
@@ -108,7 +107,9 @@ export async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
       ...lineArgs,
       commit_id: pull_request.head.sha,
       pull_number: pull_request.number,
-      body: ps.suggestion,
+      body: `To fix violation '${ps.violationSpec}', Sorald suggests the following:
+${ps.suggestion}
+`,
       path: ps.file.toString(),
       start_side: 'RIGHT'
     });
