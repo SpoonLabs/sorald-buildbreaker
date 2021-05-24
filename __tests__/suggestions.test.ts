@@ -2,39 +2,46 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as suggestions from '../src/suggestions';
+import {PatchSuggestion} from '../src/suggestions';
 import * as git from '../src/git';
 import {Repo} from '../src/git';
 import * as helpers from '../src/test-helpers';
+
+const VIOLATION_1118_SUGGESTION: PatchSuggestion = {
+  linesToReplace: {start: 1, end: 1},
+  file: 'Violation1118.java',
+  violationSpec: '1118:Violation1118.java:1:13:1:26',
+  suggestion: `\`\`\`suggestion
+public class Violation1118 {
+    private Violation1118() {
+    }
+\`\`\``
+};
+
+const VIOLATION_1854_SUGGESTION: PatchSuggestion = {
+  linesToReplace: {start: 5, end: 6},
+  file: 'Violation1854.java',
+  violationSpec: '1854:Violation1854.java:5:10:5:13',
+  suggestion: `\`\`\`suggestion
+
+\`\`\``
+};
+
+const VIOLATION_2184_SUGGESTION: PatchSuggestion = {
+  linesToReplace: {start: 3, end: 4},
+  file: 'Violation2184.java',
+  violationSpec: '2184:Violation2184.java:3:29:3:30',
+  suggestion: `\`\`\`suggestion
+        double twoThirds = 2D / 3;
+\`\`\``
+};
 
 /**
  * Test for generating patch suggestions from repairing rule 1854, which
  * results in a repair that only deletes a line.
  */
 test('generatePatchSuggestions generates correct suggestion for pure deletion repair', async () => {
-  // arrange
-  const resourceName = 'Violation1854.java';
-  const violationSpecs = ['1854:Violation1854.java:5:10:5:13'];
-  const repo = await setupRepoWith(resourceName);
-  await helpers.downloadIfNotPresent(
-    helpers.SORALD_JAR_URL,
-    helpers.SORALD_TEST_JAR_PATH
-  );
-
-  // act
-  const patchSuggestions = await suggestions.generatePatchSuggestions(
-    helpers.SORALD_TEST_JAR_PATH,
-    await repo.getWorktreeRoot(),
-    violationSpecs
-  );
-
-  // assert
-  expect(patchSuggestions.length).toEqual(1);
-  const ps = patchSuggestions[0];
-  expect(ps.suggestion).toContain(violationSpecs[0]);
-  expect(ps.suggestion).toContain(`\`\`\`suggestion
-
-\`\`\``);
-  expect(ps.linesToReplace).toEqual({start: 5, end: 6});
+  await testGeneratePatchSuggestions(VIOLATION_1854_SUGGESTION);
 });
 
 /**
@@ -47,32 +54,7 @@ test('generatePatchSuggestions generates correct suggestion for pure deletion re
  * and include the same line again in the suggestion.
  */
 test('generatePatchSuggestions generates correct suggestion for pure addition repair', async () => {
-  // arrange
-  const resourceName = 'Violation1118.java';
-  const violationSpecs = ['1118:Violation1118.java:1:13:1:26'];
-  const repo = await setupRepoWith(resourceName);
-  await helpers.downloadIfNotPresent(
-    helpers.SORALD_JAR_URL,
-    helpers.SORALD_TEST_JAR_PATH
-  );
-
-  // act
-  const patchSuggestions = await suggestions.generatePatchSuggestions(
-    helpers.SORALD_TEST_JAR_PATH,
-    await repo.getWorktreeRoot(),
-    violationSpecs
-  );
-
-  // assert
-  expect(patchSuggestions.length).toEqual(1);
-  const ps = patchSuggestions[0];
-  expect(ps.suggestion).toContain(violationSpecs[0]);
-  expect(ps.suggestion).toContain(`\`\`\`suggestion
-public class Violation1118 {
-    private Violation1118() {
-    }
-\`\`\``);
-  expect(ps.linesToReplace).toEqual({start: 1, end: 1});
+  await testGeneratePatchSuggestions(VIOLATION_1118_SUGGESTION);
 });
 
 /**
@@ -80,43 +62,32 @@ public class Violation1118 {
  * 2184, which results in both an addition and an insertion.
  */
 test('generatePatchSuggestions generates correct suggestion for addition+deletion repair', async () => {
-  // arrange
-  const resourceName = 'Violation2184.java';
-  const violationSpecs = ['2184:Violation2184.java:3:29:3:30'];
-  const repo = await setupRepoWith(resourceName);
-  await helpers.downloadIfNotPresent(
-    helpers.SORALD_JAR_URL,
-    helpers.SORALD_TEST_JAR_PATH
-  );
-
-  // act
-  const patchSuggestions = await suggestions.generatePatchSuggestions(
-    helpers.SORALD_TEST_JAR_PATH,
-    await repo.getWorktreeRoot(),
-    violationSpecs
-  );
-
-  // assert
-  expect(patchSuggestions.length).toEqual(1);
-  const ps = patchSuggestions[0];
-  expect(ps.suggestion).toContain(violationSpecs[0]);
-  expect(ps.suggestion).toContain(`\`\`\`suggestion
-        double twoThirds = 2D / 3;
-\`\`\``);
-  expect(ps.linesToReplace).toEqual({start: 3, end: 4});
+  await testGeneratePatchSuggestions(VIOLATION_2184_SUGGESTION);
 });
 
+/**
+ * Test for generating patch suggestsions for violations of multiple rules in multiple files.
+ */
 test('generatePatchSuggestions generates correct suggestions for multiple repairs', async () => {
+  await testGeneratePatchSuggestions(
+    VIOLATION_1118_SUGGESTION,
+    VIOLATION_1854_SUGGESTION,
+    VIOLATION_2184_SUGGESTION
+  );
+});
+
+/**
+ * Run a single test case for the given patch suggestions, where the file
+ * indicated by each suggestion is committed to a repository and repaired with
+ * Sorald. The patch suggestions that are generated from the repaired
+ * repository are then expected to match the input patch suggestions.
+ */
+async function testGeneratePatchSuggestions(
+  ...expectedSuggestions: PatchSuggestion[]
+): Promise<void> {
   // arrange
-  const violationSpecs = [
-    '1118:Violation1118.java:1:13:1:26',
-    '1854:Violation1854.java:5:10:5:13',
-    '2184:Violation2184.java:3:29:3:30'
-  ];
   const repo = await setupRepoWith(
-    'Violation1118.java',
-    'Violation1854.java',
-    'Violation2184.java'
+    ...expectedSuggestions.map(ps => ps.file.toString())
   );
   await helpers.downloadIfNotPresent(
     helpers.SORALD_JAR_URL,
@@ -127,18 +98,12 @@ test('generatePatchSuggestions generates correct suggestions for multiple repair
   const patchSuggestions = await suggestions.generatePatchSuggestions(
     helpers.SORALD_TEST_JAR_PATH,
     await repo.getWorktreeRoot(),
-    violationSpecs
+    expectedSuggestions.map(ps => ps.violationSpec)
   );
 
   // assert
-  expect(patchSuggestions.length).toEqual(3);
-  const [spec1118, spec1854, spec2184] = violationSpecs;
-  const [ps1118, ps1854, ps2184] = patchSuggestions;
-
-  expect(ps1118.suggestion).toContain(spec1118);
-  expect(ps1854.suggestion).toContain(spec1854);
-  expect(ps2184.suggestion).toContain(spec2184);
-});
+  expect(patchSuggestions).toEqual(expectedSuggestions);
+}
 
 /**
  * Setup a Git repository with the given resources committed.
