@@ -9,6 +9,10 @@ import {Range} from './ranges';
 import * as git from './git';
 import {Hunk, Repo} from './git';
 
+/**
+ * A patch suggestion meant to be posted to GitHub usuing the pull request
+ * review comment API.
+ */
 export interface PatchSuggestion {
   linesToReplace: Range;
   file: PathLike;
@@ -16,6 +20,14 @@ export interface PatchSuggestion {
   violationSpec: string;
 }
 
+/**
+ * Generate patch suggestions by repairing the specified rule violations.
+ *
+ * @param soraldJar - Path to a Sorald jar file to generate repairs with
+ * @param source - Path to a directory somewhere in a Git repository worktree
+ * @param violationSpecs - Specifiers for violations to repair
+ * @returns Fulfills to an array of patch suggestions
+ */
 export async function generatePatchSuggestions(
   soraldJar: PathLike,
   source: PathLike,
@@ -72,6 +84,12 @@ async function readLine(filepath: PathLike, line: number): Promise<string> {
   return content.toString().split('\n')[line - 1];
 }
 
+/**
+ * Post a pach suggestion to the current pull request, assuming the GitHub
+ * context is in fact a pull request.
+ *
+ * @param ps - A patch suggestion to post
+ */
 export async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'));
   const pull_request = github.context.payload.pull_request;
