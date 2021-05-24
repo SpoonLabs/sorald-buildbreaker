@@ -1,0 +1,55 @@
+{
+    "totalMiningTime": 442,
+    "executionInfo": {
+        "soraldVersion": "commit: e3d7a36d",
+        "javaVersion": "11.0.11",
+        "originalArgs": [
+            "mine",
+            "--handled-rules",
+            "--stats-output-file",
+            "stats.json",
+            "--source",
+            "."
+        ]
+    },
+    "miningStartTime": "Mon May 24 14:45:25 CEST 2021",
+    "minedRules": [
+        {
+            "warningLocations": [{
+                "endLine": 5,
+                "endColumn": 13,
+                "startColumn": 10,
+                "startLine": 5,
+                "filePath": "Violation1854.java",
+                "violationSpecifier": "1854:Violation1854.java:5:10:5:13"
+            }],
+            "ruleName": "DeadStoreCheck",
+            "ruleKey": "1854"
+        },
+        {
+            "warningLocations": [{
+                "endLine": 1,
+                "endColumn": 26,
+                "startColumn": 13,
+                "startLine": 1,
+                "filePath": "Violation1118.java",
+                "violationSpecifier": "1118:Violation1118.java:1:13:1:26"
+            }],
+            "ruleName": "UtilityClassWithPublicConstructorCheck",
+            "ruleKey": "1118"
+        },
+        {
+            "warningLocations": [{
+                "endLine": 3,
+                "endColumn": 30,
+                "startColumn": 29,
+                "startLine": 3,
+                "filePath": "Violation2184.java",
+                "violationSpecifier": "2184:Violation2184.java:3:29:3:30"
+            }],
+            "ruleName": "CastArithmeticOperandCheck",
+            "ruleKey": "2184"
+        }
+    ],
+    "miningEndTime": "Mon May 24 14:45:25 CEST 2021"
+}

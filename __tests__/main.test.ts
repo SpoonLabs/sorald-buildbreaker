@@ -105,7 +105,11 @@ test('runSorald can ratchet from HEAD~ with relative source path', async () => {
 
   // act
   const relativeSourcePath = path.relative('.', workdir.toString());
-  const repairs = main.runSorald(relativeSourcePath, helpers.SORALD_JAR_URL, 'HEAD~');
+  const repairs = main.runSorald(
+    relativeSourcePath,
+    helpers.SORALD_JAR_URL,
+    'HEAD~'
+  );
 
   await expect(repairs).resolves.toEqual([
     '1854:Main.java:10:4:10:7',
