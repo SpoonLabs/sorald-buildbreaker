@@ -57,9 +57,7 @@ test('runSorald can ratchet from HEAD~', async () => {
   await repo.commit('Update file');
 
   // act
-  const soraldJarUrl =
-    'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar';
-  const repairs = main.runSorald(workdir, soraldJarUrl, 'HEAD~');
+  const repairs = main.runSorald(workdir, helpers.SORALD_JAR_URL, 'HEAD~');
 
   await expect(repairs).resolves.toEqual([
     '1854:Main.java:10:4:10:7',
@@ -106,10 +104,8 @@ test('runSorald can ratchet from HEAD~ with relative source path', async () => {
   await repo.commit('Update file');
 
   // act
-  const soraldJarUrl =
-    'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar';
   const relativeSourcePath = path.relative('.', workdir.toString());
-  const repairs = main.runSorald(relativeSourcePath, soraldJarUrl, 'HEAD~');
+  const repairs = main.runSorald(relativeSourcePath, helpers.SORALD_JAR_URL, 'HEAD~');
 
   await expect(repairs).resolves.toEqual([
     '1854:Main.java:10:4:10:7',
@@ -149,9 +145,7 @@ test('runSorald with ratchet does nothing when there are no violations in change
   await repo.add(filePath);
   await repo.commit('Update file');
 
-  const soraldJarUrl =
-    'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar';
-  const repairs = main.runSorald(workdir, soraldJarUrl, 'HEAD~');
+  const repairs = main.runSorald(workdir, helpers.SORALD_JAR_URL, 'HEAD~');
 
   await expect(repairs).resolves.toHaveLength(0);
 });
@@ -181,9 +175,7 @@ test('runSorald correctly repairs existing violations', async () => {
   await repo.commit('Initial commit');
 
   // act
-  const soraldJarUrl =
-    'https://github.com/SpoonLabs/sorald/releases/download/sorald-0.1.0/sorald-0.1.0-jar-with-dependencies.jar';
-  const repairs = main.runSorald(workdir, soraldJarUrl);
+  const repairs = main.runSorald(workdir, helpers.SORALD_JAR_URL);
 
   await expect(repairs).resolves.toHaveLength(3);
 });
