@@ -27,7 +27,7 @@ jobs:
       - name: Check generated files are up-to-date
         run: git diff --exit-code
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@967e2b38a85a62bd61be5529ada27ebc109948c2 # v1.4.3
+        uses: codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27 # v1.5.0
         with:
           fail_ci_if_error: true
   test: # make sure the action works on a clean machine without building
