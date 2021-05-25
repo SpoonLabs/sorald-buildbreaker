@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import {PathLike} from 'fs';
 import * as path from 'path';
 import * as github from '@actions/github';
-import * as core from '@actions/core';
 
 import * as sorald from './sorald';
 import {Range} from './ranges';
