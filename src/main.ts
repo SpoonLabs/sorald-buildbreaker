@@ -156,4 +156,6 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+if (process.env.CI === 'true') {
+  run();
+}
