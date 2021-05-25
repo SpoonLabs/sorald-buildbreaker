@@ -6,7 +6,7 @@ import {PatchSuggestion} from '../src/suggestions';
 import * as git from '../src/git';
 import {Repo} from '../src/git';
 import * as helpers from '../src/test-helpers';
-import {SORALD_JAR} from '../src/main';
+import {SORALD_JAR} from '../src/action';
 
 const VIOLATION_1118_SUGGESTION: PatchSuggestion = {
   linesToReplace: {start: 1, end: 1},
