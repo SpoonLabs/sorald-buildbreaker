@@ -1,6 +1,143 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 9139:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = exports.runSorald = exports.SORALD_JAR = void 0;
+const path = __importStar(__nccwpck_require__(5622));
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+const sorald = __importStar(__nccwpck_require__(4111));
+const ranges = __importStar(__nccwpck_require__(9014));
+const git = __importStar(__nccwpck_require__(3374));
+const suggestions = __importStar(__nccwpck_require__(4476));
+exports.SORALD_JAR = path.join(__dirname, '../sorald-0.2.0-jar-with-dependencies.jar');
+/**
+ * Run sorald and attempt to enact repairs.
+ *
+ * @param source - Path to the source directory
+ * @param ratchetFrom - Commit-ish to ratchet from
+ * @returns Fulfills to violation specifiers for repaired violations
+ */
+async function runSorald(source, ratchetFrom) {
+    const sourceAbsPath = path.resolve(source.toString());
+    const repo = new git.Repo(sourceAbsPath);
+    core.info(`Mining rule violations at ${sourceAbsPath}`);
+    const unfilteredKeyToSpecs = await sorald.mine(exports.SORALD_JAR, sourceAbsPath, 'stats.json');
+    const keyToSpecs = await filterKeyToSpecsByRatchet(unfilteredKeyToSpecs, sourceAbsPath, repo, ratchetFrom);
+    let allRepairs = [];
+    if (keyToSpecs.size > 0) {
+        core.info('Found rule violations');
+        core.info('Attempting repairs');
+        for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
+            core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
+            const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
+            const repairs = await sorald.repair(exports.SORALD_JAR, sourceAbsPath, statsFile, violationSpecs);
+            await repo.restore();
+            allRepairs = allRepairs.concat(repairs);
+        }
+    }
+    else {
+        core.info('No violations found');
+    }
+    return allRepairs;
+}
+exports.runSorald = runSorald;
+/**
+ * Filter the violation specs such that only those present in changed code are
+ * retained, and return a new map where only keys with at least one violation
+ * spec is present after filtering.
+ *
+ * If ratchetFrom is undefined, just return a copy of the keyToSpecs map.
+ */
+async function filterKeyToSpecsByRatchet(keyToSpecs, source, repo, ratchetFrom) {
+    if (ratchetFrom === undefined) {
+        return new Map(keyToSpecs);
+    }
+    const filteredKeyToSpecs = new Map();
+    const diff = await repo.diff(ratchetFrom);
+    const worktreeRoot = await repo.getWorktreeRoot();
+    const changedLines = git.parseChangedLines(diff, worktreeRoot);
+    for (const [ruleKey, unfilteredSpecs] of keyToSpecs.entries()) {
+        const filteredSpecs = changedLines === undefined
+            ? unfilteredSpecs
+            : filterViolationSpecsByRatchet(unfilteredSpecs, changedLines, source);
+        if (filteredSpecs.length > 0) {
+            filteredKeyToSpecs.set(ruleKey, filteredSpecs);
+        }
+    }
+    return filteredKeyToSpecs;
+}
+/**
+ * Filter out any violation specifiers that aren't present in the changed lines
+ * of code.
+ */
+function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
+    if (changedLines === undefined) {
+        return violationSpecs;
+    }
+    return violationSpecs.filter(spec => {
+        const filePath = path.join(source.toString(), sorald.parseFilePath(spec));
+        const lineRange = sorald.parseAffectedLines(spec);
+        const changedLinesInFile = changedLines.get(filePath);
+        return (changedLinesInFile !== undefined &&
+            ranges.overlapsAny(lineRange, changedLinesInFile));
+    });
+}
+/**
+ * Run the sorald-buildbreaker action.
+ */
+async function run() {
+    try {
+        const source = core.getInput('source');
+        const ratchetFrom = core.getInput('ratchet-from');
+        const repairedViolations = await runSorald(source, ratchetFrom ? ratchetFrom : undefined);
+        const suggestionsToken = core.getInput('suggestions-token');
+        if (github.context.eventName === 'pull_request' && suggestionsToken) {
+            const patchSuggestions = await suggestions.generatePatchSuggestions(exports.SORALD_JAR, source, repairedViolations);
+            for (const ps of patchSuggestions) {
+                await suggestions.postPatchSuggestion(ps, suggestionsToken);
+            }
+        }
+        if (repairedViolations.length > 0) {
+            core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
+        }
+        else {
+            core.info('No repairable violations found');
+        }
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
+}
+exports.run = run;
+//# sourceMappingURL=action.js.map
+
+/***/ }),
+
 /***/ 3374:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -208,142 +345,6 @@ function createDiffRange(startUnparsed, numLinesUnparsed) {
     return { start: startLine, end: startLine + numLines };
 }
 //# sourceMappingURL=git.js.map
-
-/***/ }),
-
-/***/ 3109:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runSorald = exports.SORALD_JAR = void 0;
-const path = __importStar(__nccwpck_require__(5622));
-const core = __importStar(__nccwpck_require__(2186));
-const github = __importStar(__nccwpck_require__(5438));
-const sorald = __importStar(__nccwpck_require__(4111));
-const ranges = __importStar(__nccwpck_require__(9014));
-const git = __importStar(__nccwpck_require__(3374));
-const suggestions = __importStar(__nccwpck_require__(4476));
-exports.SORALD_JAR = path.join(__dirname, '../sorald-0.2.0-jar-with-dependencies.jar');
-/**
- * Run sorald and attempt to enact repairs.
- *
- * @param source - Path to the source directory
- * @param ratchetFrom - Commit-ish to ratchet from
- * @returns Fulfills to violation specifiers for repaired violations
- */
-async function runSorald(source, ratchetFrom) {
-    const sourceAbsPath = path.resolve(source.toString());
-    const repo = new git.Repo(sourceAbsPath);
-    core.info(`Mining rule violations at ${sourceAbsPath}`);
-    const unfilteredKeyToSpecs = await sorald.mine(exports.SORALD_JAR, sourceAbsPath, 'stats.json');
-    const keyToSpecs = await filterKeyToSpecsByRatchet(unfilteredKeyToSpecs, sourceAbsPath, repo, ratchetFrom);
-    let allRepairs = [];
-    if (keyToSpecs.size > 0) {
-        core.info('Found rule violations');
-        core.info('Attempting repairs');
-        for (const [ruleKey, violationSpecs] of keyToSpecs.entries()) {
-            core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
-            const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
-            const repairs = await sorald.repair(exports.SORALD_JAR, sourceAbsPath, statsFile, violationSpecs);
-            await repo.restore();
-            allRepairs = allRepairs.concat(repairs);
-        }
-    }
-    else {
-        core.info('No violations found');
-    }
-    return allRepairs;
-}
-exports.runSorald = runSorald;
-/**
- * Filter the violation specs such that only those present in changed code are
- * retained, and return a new map where only keys with at least one violation
- * spec is present after filtering.
- *
- * If ratchetFrom is undefined, just return a copy of the keyToSpecs map.
- */
-async function filterKeyToSpecsByRatchet(keyToSpecs, source, repo, ratchetFrom) {
-    if (ratchetFrom === undefined) {
-        return new Map(keyToSpecs);
-    }
-    const filteredKeyToSpecs = new Map();
-    const diff = await repo.diff(ratchetFrom);
-    const worktreeRoot = await repo.getWorktreeRoot();
-    const changedLines = git.parseChangedLines(diff, worktreeRoot);
-    for (const [ruleKey, unfilteredSpecs] of keyToSpecs.entries()) {
-        const filteredSpecs = changedLines === undefined
-            ? unfilteredSpecs
-            : filterViolationSpecsByRatchet(unfilteredSpecs, changedLines, source);
-        if (filteredSpecs.length > 0) {
-            filteredKeyToSpecs.set(ruleKey, filteredSpecs);
-        }
-    }
-    return filteredKeyToSpecs;
-}
-/**
- * Filter out any violation specifiers that aren't present in the changed lines
- * of code.
- */
-function filterViolationSpecsByRatchet(violationSpecs, changedLines, source) {
-    if (changedLines === undefined) {
-        return violationSpecs;
-    }
-    return violationSpecs.filter(spec => {
-        const filePath = path.join(source.toString(), sorald.parseFilePath(spec));
-        const lineRange = sorald.parseAffectedLines(spec);
-        const changedLinesInFile = changedLines.get(filePath);
-        return (changedLinesInFile !== undefined &&
-            ranges.overlapsAny(lineRange, changedLinesInFile));
-    });
-}
-async function run() {
-    try {
-        const source = core.getInput('source');
-        const ratchetFrom = core.getInput('ratchet-from');
-        const repairedViolations = await runSorald(source, ratchetFrom ? ratchetFrom : undefined);
-        const suggestionsToken = core.getInput('suggestions-token');
-        if (github.context.eventName === 'pull_request' && suggestionsToken) {
-            const patchSuggestions = await suggestions.generatePatchSuggestions(exports.SORALD_JAR, source, repairedViolations);
-            for (const ps of patchSuggestions) {
-                await suggestions.postPatchSuggestion(ps, suggestionsToken);
-            }
-        }
-        if (repairedViolations.length > 0) {
-            core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
-        }
-        else {
-            core.info('No repairable violations found');
-        }
-    }
-    catch (error) {
-        core.setFailed(error.message);
-    }
-}
-if (process.env.CI === 'true') {
-    run();
-}
-//# sourceMappingURL=main.js.map
 
 /***/ }),
 
@@ -7972,13 +7973,19 @@ module.exports = require("zlib");;
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(3109);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const action_1 = __nccwpck_require__(9139);
+action_1.run();
+//# sourceMappingURL=main.js.map
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map

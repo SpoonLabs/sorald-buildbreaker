@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-import * as main from '../src/main';
+import * as action from '../src/action';
 import * as git from '../src/git';
 
 import * as helpers from '../src/test-helpers';
@@ -57,7 +57,7 @@ test('runSorald can ratchet from HEAD~', async () => {
   await repo.commit('Update file');
 
   // act
-  const repairs = main.runSorald(workdir, 'HEAD~');
+  const repairs = action.runSorald(workdir, 'HEAD~');
 
   await expect(repairs).resolves.toEqual([
     '1854:Main.java:10:4:10:7',
@@ -105,7 +105,7 @@ test('runSorald can ratchet from HEAD~ with relative source path', async () => {
 
   // act
   const relativeSourcePath = path.relative('.', workdir.toString());
-  const repairs = main.runSorald(relativeSourcePath, 'HEAD~');
+  const repairs = action.runSorald(relativeSourcePath, 'HEAD~');
 
   await expect(repairs).resolves.toEqual([
     '1854:Main.java:10:4:10:7',
@@ -145,7 +145,7 @@ test('runSorald with ratchet does nothing when there are no violations in change
   await repo.add(filePath);
   await repo.commit('Update file');
 
-  const repairs = main.runSorald(workdir, 'HEAD~');
+  const repairs = action.runSorald(workdir, 'HEAD~');
 
   await expect(repairs).resolves.toHaveLength(0);
 });
@@ -175,7 +175,7 @@ test('runSorald correctly repairs existing violations', async () => {
   await repo.commit('Initial commit');
 
   // act
-  const repairs = main.runSorald(workdir);
+  const repairs = action.runSorald(workdir);
 
   await expect(repairs).resolves.toHaveLength(3);
 });
