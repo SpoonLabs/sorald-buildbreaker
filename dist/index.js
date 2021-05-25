@@ -330,7 +330,9 @@ async function run() {
         core.setFailed(error.message);
     }
 }
-run();
+if (process.env.CI === 'true') {
+    run();
+}
 //# sourceMappingURL=main.js.map
 
 /***/ }),
