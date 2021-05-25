@@ -37,6 +37,8 @@ const VIOLATION_2184_SUGGESTION: PatchSuggestion = {
 \`\`\``
 };
 
+jest.setTimeout(20 * 1000);
+
 /**
  * Test for generating patch suggestions from repairing rule 1854, which
  * results in a repair that only deletes a line.
