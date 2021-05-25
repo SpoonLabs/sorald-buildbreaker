@@ -6,6 +6,7 @@ import {PatchSuggestion} from '../src/suggestions';
 import * as git from '../src/git';
 import {Repo} from '../src/git';
 import * as helpers from '../src/test-helpers';
+import {SORALD_JAR} from '../src/main';
 
 const VIOLATION_1118_SUGGESTION: PatchSuggestion = {
   linesToReplace: {start: 1, end: 1},
@@ -89,14 +90,10 @@ async function testGeneratePatchSuggestions(
   const repo = await setupRepoWith(
     ...expectedSuggestions.map(ps => ps.file.toString())
   );
-  await helpers.downloadIfNotPresent(
-    helpers.SORALD_JAR_URL,
-    helpers.SORALD_TEST_JAR_PATH
-  );
 
   // act
   const patchSuggestions = await suggestions.generatePatchSuggestions(
-    helpers.SORALD_TEST_JAR_PATH,
+    SORALD_JAR,
     await repo.getWorktreeRoot(),
     expectedSuggestions.map(ps => ps.violationSpec)
   );

@@ -9,13 +9,6 @@ build if any repairable violations are found.
 
 **Required** Path to the source code directory to analyze.
 
-### `sorald-jar-url`
-
-URL to the Sorald JAR to download and use.
-
-> **Note:** This option is deprecated and will be removed, see
-> [this issue](https://github.com/SpoonLabs/sorald-buildbreaker/issues/7)
-
 ### `ratchet-from`
 
 Commit-ish to ratchet from, such that only the changed lines between the head

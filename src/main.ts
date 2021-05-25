@@ -1,10 +1,6 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as core from '@actions/core';
 import {PathLike} from 'fs';
-import got from 'got';
-import {promisify} from 'util';
-import * as stream from 'stream';
 
 import * as sorald from './sorald';
 import * as ranges from './ranges';
@@ -14,36 +10,28 @@ import {Range} from './ranges';
 
 import * as suggestions from './suggestions';
 
-const JAR_DST_PATH = 'sorald.jar';
-
-const pipeline = promisify(stream.pipeline);
-
-export async function download(url: string, dst: PathLike): Promise<void> {
-  return pipeline(got.stream(url), fs.createWriteStream(dst));
-}
+export const SORALD_JAR = path.join(
+  __dirname,
+  '../sorald-0.2.0-jar-with-dependencies.jar'
+);
 
 /**
  * Run sorald and attempt to enact repairs.
  *
  * @param source - Path to the source directory
- * @param soraldJarUrl - URL to download the Sorald JAR from
  * @param ratchetFrom - Commit-ish to ratchet from
  * @returns Fulfills to violation specifiers for repaired violations
  */
 export async function runSorald(
   source: PathLike,
-  soraldJarUrl: string,
   ratchetFrom?: string
 ): Promise<string[]> {
   const sourceAbsPath = path.resolve(source.toString());
   const repo = new git.Repo(sourceAbsPath);
 
-  core.info(`Downloading Sorald jar to ${JAR_DST_PATH}`);
-  await download(soraldJarUrl, JAR_DST_PATH);
-
   core.info(`Mining rule violations at ${sourceAbsPath}`);
   const unfilteredKeyToSpecs: Map<number, string[]> = await sorald.mine(
-    JAR_DST_PATH,
+    SORALD_JAR,
     sourceAbsPath,
     'stats.json'
   );
@@ -62,7 +50,7 @@ export async function runSorald(
       core.info(`Repairing violations of rule ${ruleKey}: ${violationSpecs}`);
       const statsFile = path.join(sourceAbsPath, `${ruleKey}.json`);
       const repairs = await sorald.repair(
-        JAR_DST_PATH,
+        SORALD_JAR,
         sourceAbsPath,
         statsFile,
         violationSpecs
@@ -141,16 +129,14 @@ function filterViolationSpecsByRatchet(
 async function run(): Promise<void> {
   try {
     const source: PathLike = core.getInput('source');
-    const soraldJarUrl: string = core.getInput('sorald-jar-url');
     const ratchetFrom: string = core.getInput('ratchet-from');
     const repairedViolations: string[] = await runSorald(
       source,
-      soraldJarUrl,
       ratchetFrom ? ratchetFrom : undefined
     );
 
     const patchSuggestions = await suggestions.generatePatchSuggestions(
-      JAR_DST_PATH,
+      SORALD_JAR,
       source,
       repairedViolations
     );
