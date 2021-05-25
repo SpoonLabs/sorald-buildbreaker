@@ -123,7 +123,10 @@ function filterViolationSpecsByRatchet(
   });
 }
 
-async function run(): Promise<void> {
+/**
+ * Run the sorald-buildbreaker action.
+ */
+export async function run(): Promise<void> {
   try {
     const source: PathLike = core.getInput('source');
     const ratchetFrom: string = core.getInput('ratchet-from');
@@ -142,8 +145,4 @@ async function run(): Promise<void> {
   } catch (error) {
     core.setFailed(error.message);
   }
-}
-
-if (process.env.CI === 'true') {
-  run();
 }
