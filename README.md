@@ -21,6 +21,19 @@ almost always `'origin/main'` or `'origin/master'`. When `sorald-buildbreaker`
 runs on pull requests, this has the effect of only acting upon violations that
 are contained within the changed lines of the pull request.
 
+### `suggestions-token`
+
+A token to post pull request suggestions with. If provided,
+`sorald-buildbreaker` will use it to post pull request review comments with
+Sorald's repairs as suggestions.
+
+Typically, this should be provided with the `secrets.GITHUB_TOKEN`.
+
+```yaml
+  with:
+    suggestions-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
 ## Outputs
 
 There are no outputs at this time.
