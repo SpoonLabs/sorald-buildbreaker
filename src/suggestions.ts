@@ -88,9 +88,13 @@ async function readLine(filepath: PathLike, line: number): Promise<string> {
  * context is in fact a pull request.
  *
  * @param ps - A patch suggestion to post
+ * @param token - Token to authenticate with the GitHub API
  */
-export async function postPatchSuggestion(ps: PatchSuggestion): Promise<void> {
-  const octokit = github.getOctokit(core.getInput('token'));
+export async function postPatchSuggestion(
+  ps: PatchSuggestion,
+  token: string
+): Promise<void> {
+  const octokit = github.getOctokit(token);
   const pull_request = github.context.payload.pull_request;
 
   if (pull_request !== undefined) {

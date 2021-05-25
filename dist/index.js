@@ -239,6 +239,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runSorald = exports.SORALD_JAR = void 0;
 const path = __importStar(__nccwpck_require__(5622));
 const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
 const sorald = __importStar(__nccwpck_require__(4111));
 const ranges = __importStar(__nccwpck_require__(9014));
 const git = __importStar(__nccwpck_require__(3374));
@@ -321,9 +322,12 @@ async function run() {
         const source = core.getInput('source');
         const ratchetFrom = core.getInput('ratchet-from');
         const repairedViolations = await runSorald(source, ratchetFrom ? ratchetFrom : undefined);
-        const patchSuggestions = await suggestions.generatePatchSuggestions(exports.SORALD_JAR, source, repairedViolations);
-        for (const ps of patchSuggestions) {
-            await suggestions.postPatchSuggestion(ps);
+        const suggestionsToken = core.getInput('suggestions-token');
+        if (github.context.eventName === 'pull_request' && suggestionsToken) {
+            const patchSuggestions = await suggestions.generatePatchSuggestions(exports.SORALD_JAR, source, repairedViolations);
+            for (const ps of patchSuggestions) {
+                await suggestions.postPatchSuggestion(ps, suggestionsToken);
+            }
         }
         if (repairedViolations.length > 0) {
             core.setFailed(`Found repairable violations ${repairedViolations.join(' ')}`);
@@ -577,7 +581,6 @@ exports.postPatchSuggestion = exports.generatePatchSuggestions = void 0;
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const github = __importStar(__nccwpck_require__(5438));
-const core = __importStar(__nccwpck_require__(2186));
 const sorald = __importStar(__nccwpck_require__(4111));
 const git = __importStar(__nccwpck_require__(3374));
 const git_1 = __nccwpck_require__(3374);
@@ -630,9 +633,10 @@ async function readLine(filepath, line) {
  * context is in fact a pull request.
  *
  * @param ps - A patch suggestion to post
+ * @param token - Token to authenticate with the GitHub API
  */
-async function postPatchSuggestion(ps) {
-    const octokit = github.getOctokit(core.getInput('token'));
+async function postPatchSuggestion(ps, token) {
+    const octokit = github.getOctokit(token);
     const pull_request = github.context.payload.pull_request;
     if (pull_request !== undefined) {
         const startLine = ps.linesToReplace.start;

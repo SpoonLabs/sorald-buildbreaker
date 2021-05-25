@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as core from '@actions/core';
+import * as github from '@actions/github';
 import {PathLike} from 'fs';
 
 import * as sorald from './sorald';
@@ -135,13 +136,16 @@ async function run(): Promise<void> {
       ratchetFrom ? ratchetFrom : undefined
     );
 
-    const patchSuggestions = await suggestions.generatePatchSuggestions(
-      SORALD_JAR,
-      source,
-      repairedViolations
-    );
-    for (const ps of patchSuggestions) {
-      await suggestions.postPatchSuggestion(ps);
+    const suggestionsToken = core.getInput('suggestions-token');
+    if (github.context.eventName === 'pull_request' && suggestionsToken) {
+      const patchSuggestions = await suggestions.generatePatchSuggestions(
+        SORALD_JAR,
+        source,
+        repairedViolations
+      );
+      for (const ps of patchSuggestions) {
+        await suggestions.postPatchSuggestion(ps, suggestionsToken);
+      }
     }
 
     if (repairedViolations.length > 0) {
