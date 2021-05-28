@@ -32,7 +32,7 @@ const core = __importStar(__nccwpck_require__(186));
 const sorald = __importStar(__nccwpck_require__(111));
 const ranges = __importStar(__nccwpck_require__(14));
 const git = __importStar(__nccwpck_require__(374));
-const SORALD_JAR = path.join(__dirname, '../sorald-0.2.0-jar-with-dependencies.jar');
+const SORALD_JAR = path.join(__dirname, '../sorald-0.3.0-jar-with-dependencies.jar');
 /**
  * Run sorald and attempt to enact repairs.
  *
