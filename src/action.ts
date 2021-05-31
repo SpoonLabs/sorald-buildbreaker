@@ -13,7 +13,7 @@ import * as suggestions from './suggestions';
 
 export const SORALD_JAR = path.join(
   __dirname,
-  '../sorald-0.2.0-jar-with-dependencies.jar'
+  '../sorald-0.3.0-jar-with-dependencies.jar'
 );
 
 /**
