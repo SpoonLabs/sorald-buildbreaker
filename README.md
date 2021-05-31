@@ -27,7 +27,8 @@ A token to post pull request suggestions with. If provided,
 `sorald-buildbreaker` will use it to post pull request review comments with
 Sorald's repairs as suggestions.
 
-Typically, this should be provided with the `secrets.GITHUB_TOKEN`.
+Typically, this should be provided with the `secrets.GITHUB_TOKEN` (see
+[Authenticating in a workflow](https://docs.github.com/en/actions/reference/authentication-in-a-workflow)).
 
 ```yaml
   with:
