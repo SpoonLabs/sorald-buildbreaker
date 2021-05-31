@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as core from '@actions/core';
+import * as github from '@actions/github';
 import {PathLike} from 'fs';
 
 import * as sorald from './sorald';
@@ -8,7 +9,9 @@ import * as ranges from './ranges';
 import * as git from './git';
 import {Range} from './ranges';
 
-const SORALD_JAR = path.join(
+import * as suggestions from './suggestions';
+
+export const SORALD_JAR = path.join(
   __dirname,
   '../sorald-0.3.0-jar-with-dependencies.jar'
 );
@@ -59,6 +62,7 @@ export async function runSorald(
   } else {
     core.info('No violations found');
   }
+
   return allRepairs;
 }
 
@@ -134,6 +138,18 @@ export async function run(): Promise<void> {
       source,
       ratchetFrom ? ratchetFrom : undefined
     );
+
+    const suggestionsToken = core.getInput('suggestions-token');
+    if (github.context.eventName === 'pull_request' && suggestionsToken) {
+      const patchSuggestions = await suggestions.generatePatchSuggestions(
+        SORALD_JAR,
+        source,
+        repairedViolations
+      );
+      for (const ps of patchSuggestions) {
+        await suggestions.postPatchSuggestion(ps, suggestionsToken);
+      }
+    }
 
     if (repairedViolations.length > 0) {
       core.setFailed(
