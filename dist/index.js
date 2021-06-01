@@ -669,10 +669,8 @@ exports.postPatchSuggestion = postPatchSuggestion;
  */
 async function generateSuggestionMessage(ps) {
     const [ruleKey] = ps.violationSpec.split(':');
-    const sonarVersion = '6.9.0.23563';
-    const sonarRuleMetadataUrl = `https://raw.githubusercontent.com/SonarSource/sonar-java/${sonarVersion}/java-checks/src/main/resources/org/sonar/l10n/java/rules/java/S${ruleKey}_java.json`;
     const ruleInfoPage = `https://rules.sonarsource.com/java/RSPEC-${ruleKey}`;
-    const ruleMetadata = await httpGetJson(sonarRuleMetadataUrl);
+    const ruleMetadata = await getRuleMetadata(ruleKey);
     return `This code change violates SonarSource rule [${ruleKey}: ${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
 
 ${ps.suggestion}
@@ -683,11 +681,10 @@ Violation specifier: ${ps.violationSpec}
 `;
 }
 exports.generateSuggestionMessage = generateSuggestionMessage;
-async function httpGetJson(url) {
-    const response = await got_1.default(url, {
-        responseType: 'json'
-    }).json();
-    return response;
+async function getRuleMetadata(ruleKey) {
+    const sonarVersion = '6.9.0.23563';
+    const sonarRuleMetadataUrl = `https://raw.githubusercontent.com/SonarSource/sonar-java/${sonarVersion}/java-checks/src/main/resources/org/sonar/l10n/java/rules/java/S${ruleKey}_java.json`;
+    return got_1.default(sonarRuleMetadataUrl, { responseType: 'json' }).json();
 }
 //# sourceMappingURL=suggestions.js.map
 
