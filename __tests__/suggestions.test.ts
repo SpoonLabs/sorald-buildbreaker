@@ -85,7 +85,10 @@ test('generatePatchSuggestions generates correct suggestions for multiple repair
   );
 });
 
-test('generateSuggestionMessage includes correct links for rule 2097', async () => {
+/**
+ * Test that the correct links and violation specifier are included in the PR comment message.
+ */
+test('generateSuggestionMessage includes correct metadata for rule 2097', async () => {
   const returnValue = {
     json: async () => {
       return {
@@ -101,13 +104,14 @@ test('generateSuggestionMessage includes correct links for rule 2097', async () 
       };
     }
   } as unknown as CancelableRequest; // this is a hack to not have to specify all properties of CancelableRequest
+  const violationSpec = '2097:dontcare:1:1:1:1';
   gotMock.mockReturnValue(returnValue);
 
   const ps: PatchSuggestion = {
     linesToReplace: {start: 1, end: 2},
     file: 'dontcare',
     suggestion: 'dontcare',
-    violationSpec: '2097:dontcare:1:1:2:2'
+    violationSpec: violationSpec,
   };
 
   const generatedMessage = await suggestions.generateSuggestionMessage(ps);
@@ -118,6 +122,7 @@ test('generateSuggestionMessage includes correct links for rule 2097', async () 
   expect(generatedMessage).toContain(
     `[Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md)`
   );
+  expect(generatedMessage).toContain(violationSpec);
 });
 
 /**

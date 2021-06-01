@@ -138,6 +138,8 @@ export async function generateSuggestionMessage(
 ${ps.suggestion}
 
 See [Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md).
+
+Violation specifier: ${ps.violationSpec}
 `;
 }
 
