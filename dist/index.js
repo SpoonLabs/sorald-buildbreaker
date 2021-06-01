@@ -668,7 +668,10 @@ async function generateSuggestionMessage(ps) {
     const ruleInfoPage = `https://rules.sonarsource.com/java/RSPEC-${ruleKey}`;
     const ruleMetadata = await httpGetJson(sonarRuleMetadataUrl);
     return `This code change violates the SonarSource rule [${ruleKey}: ${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
+
 ${ps.suggestion}
+
+See [Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md).
 `;
 }
 async function httpGetJson(url) {

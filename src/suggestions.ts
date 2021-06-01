@@ -126,7 +126,10 @@ async function generateSuggestionMessage(ps: PatchSuggestion): Promise<string> {
 
   const ruleMetadata = await httpGetJson(sonarRuleMetadataUrl);
   return `This code change violates the SonarSource rule [${ruleKey}: ${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
+
 ${ps.suggestion}
+
+See [Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md).
 `;
 }
 
