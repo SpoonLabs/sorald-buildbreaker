@@ -581,7 +581,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.postPatchSuggestion = exports.generatePatchSuggestions = void 0;
+exports.generateSuggestionMessage = exports.postPatchSuggestion = exports.generatePatchSuggestions = void 0;
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const github = __importStar(__nccwpck_require__(5438));
@@ -661,6 +661,12 @@ async function postPatchSuggestion(ps, token) {
     }
 }
 exports.postPatchSuggestion = postPatchSuggestion;
+/**
+ * Generate a full, human-friendly suggestion message based on a patch suggestion.
+ *
+ * @param ps - A patch suggestion
+ * @returns Fulfills to a suggestion message
+ */
 async function generateSuggestionMessage(ps) {
     const [ruleKey] = ps.violationSpec.split(':');
     const sonarVersion = '6.9.0.23563';
@@ -674,6 +680,7 @@ ${ps.suggestion}
 See [Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md).
 `;
 }
+exports.generateSuggestionMessage = generateSuggestionMessage;
 async function httpGetJson(url) {
     const response = await got_1.default(url, {
         responseType: 'json'

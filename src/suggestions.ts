@@ -118,7 +118,15 @@ export async function postPatchSuggestion(
   }
 }
 
-async function generateSuggestionMessage(ps: PatchSuggestion): Promise<string> {
+/**
+ * Generate a full, human-friendly suggestion message based on a patch suggestion.
+ *
+ * @param ps - A patch suggestion
+ * @returns Fulfills to a suggestion message
+ */
+export async function generateSuggestionMessage(
+  ps: PatchSuggestion
+): Promise<string> {
   const [ruleKey] = ps.violationSpec.split(':');
   const sonarVersion = '6.9.0.23563';
   const sonarRuleMetadataUrl = `https://raw.githubusercontent.com/SonarSource/sonar-java/${sonarVersion}/java-checks/src/main/resources/org/sonar/l10n/java/rules/java/S${ruleKey}_java.json`;
