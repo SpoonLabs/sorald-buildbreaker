@@ -111,7 +111,7 @@ test('generateSuggestionMessage includes correct metadata for rule 2097', async 
     linesToReplace: {start: 1, end: 2},
     file: 'dontcare',
     suggestion: 'dontcare',
-    violationSpec: violationSpec,
+    violationSpec: violationSpec
   };
 
   const generatedMessage = await suggestions.generateSuggestionMessage(ps);
