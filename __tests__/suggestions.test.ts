@@ -8,6 +8,12 @@ import {Repo} from '../src/git';
 import * as helpers from '../src/test-helpers';
 import {SORALD_JAR} from '../src/action';
 
+import got, {CancelableRequest} from 'got';
+
+jest.mock('got');
+
+const gotMock = got as jest.MockedFunction<typeof got>;
+
 const VIOLATION_1118_SUGGESTION: PatchSuggestion = {
   linesToReplace: {start: 1, end: 1},
   file: 'Violation1118.java',
@@ -77,6 +83,46 @@ test('generatePatchSuggestions generates correct suggestions for multiple repair
     VIOLATION_1854_SUGGESTION,
     VIOLATION_2184_SUGGESTION
   );
+});
+
+/**
+ * Test that the correct links and violation specifier are included in the PR comment message.
+ */
+test('generateSuggestionMessage includes correct metadata for rule 2097', async () => {
+  const returnValue = {
+    json: async () => {
+      return {
+        title: '"equals(Object obj)" should test argument type',
+        type: 'BUG',
+        status: 'ready',
+        remediation: {func: 'Constant/Issue', constantCost: '5min'},
+        tags: [],
+        defaultSeverity: 'Minor',
+        ruleSpecification: 'RSPEC-2097',
+        sqKey: 'S2097',
+        scope: 'All'
+      };
+    }
+  } as unknown as CancelableRequest; // this is a hack to not have to specify all properties of CancelableRequest
+  const violationSpec = '2097:dontcare:1:1:1:1';
+  gotMock.mockReturnValue(returnValue);
+
+  const ps: PatchSuggestion = {
+    linesToReplace: {start: 1, end: 2},
+    file: 'dontcare',
+    suggestion: 'dontcare',
+    violationSpec: violationSpec
+  };
+
+  const generatedMessage = await suggestions.generateSuggestionMessage(ps);
+
+  expect(generatedMessage).toContain(
+    '[2097: "equals(Object obj)" should test argument type](https://rules.sonarsource.com/java/RSPEC-2097)'
+  );
+  expect(generatedMessage).toContain(
+    `[Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md)`
+  );
+  expect(generatedMessage).toContain(violationSpec);
 });
 
 /**
