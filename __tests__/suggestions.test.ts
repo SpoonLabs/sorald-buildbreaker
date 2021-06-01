@@ -112,8 +112,12 @@ test('generateSuggestionMessage includes correct links for rule 2097', async () 
 
   const generatedMessage = await suggestions.generateSuggestionMessage(ps);
 
-  expect(generatedMessage).toContain('[2097: "equals(Object obj)" should test argument type](https://rules.sonarsource.com/java/RSPEC-2097)');
-  expect(generatedMessage).toContain(`[Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md)`);
+  expect(generatedMessage).toContain(
+    '[2097: "equals(Object obj)" should test argument type](https://rules.sonarsource.com/java/RSPEC-2097)'
+  );
+  expect(generatedMessage).toContain(
+    `[Sorald's documentation for details on the repair](https://github.com/SpoonLabs/sorald/blob/master/docs/HANDLED_RULES.md)`
+  );
 });
 
 /**
