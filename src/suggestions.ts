@@ -125,7 +125,7 @@ async function generateSuggestionMessage(ps: PatchSuggestion): Promise<string> {
   const ruleInfoPage = `https://rules.sonarsource.com/java/RSPEC-${ruleKey}`;
 
   const ruleMetadata = await httpGetJson(sonarRuleMetadataUrl);
-  return `This code change violates the SonarSource rule [${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
+  return `This code change violates the SonarSource rule [${ruleKey}: ${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
 ${ps.suggestion}
 `;
 }
