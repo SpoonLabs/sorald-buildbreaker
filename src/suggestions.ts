@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import {PathLike} from 'fs';
 import * as path from 'path';
 import * as github from '@actions/github';
+import got from 'got';
 
 import * as sorald from './sorald';
 import {Range} from './ranges';
@@ -110,11 +111,34 @@ export async function postPatchSuggestion(
       ...lineArgs,
       commit_id: pull_request.head.sha,
       pull_number: pull_request.number,
-      body: `To fix violation '${ps.violationSpec}', Sorald suggests the following:
-${ps.suggestion}
-`,
+      body: await generateSuggestionMessage(ps),
       path: ps.file.toString(),
       start_side: 'RIGHT'
     });
   }
+}
+
+async function generateSuggestionMessage(ps: PatchSuggestion): Promise<string> {
+  const [ruleKey] = ps.violationSpec.split(':');
+  const sonarVersion = '6.9.0.23563';
+  const sonarRuleMetadataUrl = `https://raw.githubusercontent.com/SonarSource/sonar-java/${sonarVersion}/java-checks/src/main/resources/org/sonar/l10n/java/rules/java/S${ruleKey}_java.json`;
+  const ruleInfoPage = `https://rules.sonarsource.com/java/RSPEC-${ruleKey}`;
+
+  const ruleMetadata = await httpGetJson(sonarRuleMetadataUrl);
+  return `This code change violates the SonarSource rule [${ruleMetadata.title}](${ruleInfoPage}). Sorald suggests the following fix:
+${ps.suggestion}
+`;
+}
+
+async function httpGetJson(url: string): Promise<RuleMetadata> {
+  const response: RuleMetadata = await got(url, {
+    responseType: 'json'
+  }).json();
+  return response;
+}
+
+interface RuleMetadata {
+  title: string;
+  type: string;
+  sqKey: string;
 }
