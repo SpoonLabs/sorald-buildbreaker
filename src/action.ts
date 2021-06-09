@@ -146,9 +146,7 @@ export async function run(): Promise<void> {
         source,
         repairedViolations
       );
-      for (const ps of patchSuggestions) {
-        await suggestions.postPatchSuggestion(ps, suggestionsToken);
-      }
+      await suggestions.uploadPatchSuggestions(patchSuggestions);
     }
 
     if (repairedViolations.length > 0) {

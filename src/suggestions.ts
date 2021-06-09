@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import {PathLike} from 'fs';
 import * as path from 'path';
 import * as github from '@actions/github';
+import * as artifact from '@actions/artifact';
 import got from 'got';
 
 import * as sorald from './sorald';
@@ -90,31 +91,48 @@ async function readLine(filepath: PathLike, line: number): Promise<string> {
  * @param ps - A patch suggestion to post
  * @param token - Token to authenticate with the GitHub API
  */
-export async function postPatchSuggestion(
-  ps: PatchSuggestion,
-  token: string
+export async function uploadPatchSuggestions(
+  patchSuggestions: PatchSuggestion[]
 ): Promise<void> {
-  const octokit = github.getOctokit(token);
   const pull_request = github.context.payload.pull_request;
 
   if (pull_request !== undefined) {
-    const startLine = ps.linesToReplace.start;
-    const endLine = ps.linesToReplace.end - 1;
+    const bareSuggestions: Object[] = [];
 
-    const lineArgs =
-      endLine <= startLine
-        ? {line: startLine}
-        : {start_line: startLine, line: endLine};
+    for (const ps of patchSuggestions) {
+      const startLine = ps.linesToReplace.start;
+      const endLine = ps.linesToReplace.end - 1;
 
-    await octokit.rest.pulls.createReviewComment({
-      ...github.context.repo,
-      ...lineArgs,
-      commit_id: pull_request.head.sha,
-      pull_number: pull_request.number,
-      body: await generateSuggestionMessage(ps),
-      path: ps.file.toString(),
-      start_side: 'RIGHT'
-    });
+      const lineArgs =
+        endLine <= startLine
+          ? {line: startLine}
+          : {start_line: startLine, line: endLine};
+
+      const bareSuggestion = JSON.stringify({
+        ...lineArgs,
+        body: await generateSuggestionMessage(ps),
+        start_side: 'RIGHT',
+        path: ps.file.toString()
+      });
+      bareSuggestions.push(bareSuggestion);
+    }
+
+    const json = JSON.stringify(bareSuggestions);
+    const jsonFilePath = 'jsonified_suggestions.json';
+    await fs.promises.writeFile(jsonFilePath, json);
+
+    const artifactClient = artifact.create();
+    const artifactName = jsonFilePath;
+    const rootDirectory = '.';
+    const files = [jsonFilePath];
+    const options = {continueOnError: false};
+
+    await artifactClient.uploadArtifact(
+      artifactName,
+      files,
+      rootDirectory,
+      options
+    );
   }
 }
 
