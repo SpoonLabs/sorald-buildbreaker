@@ -1,7 +1,10 @@
 import * as path from 'path';
+import * as fs from 'fs';
+import {PathLike} from 'fs';
+
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import {PathLike} from 'fs';
+import * as artifact from '@actions/artifact';
 
 import * as sorald from './sorald';
 import * as ranges from './ranges';
@@ -15,6 +18,8 @@ export const SORALD_JAR = path.join(
   __dirname,
   '../sorald-0.3.0-jar-with-dependencies.jar'
 );
+
+const COMMENTS_JSON_FILENAME = 'review-comments.json';
 
 /**
  * Run sorald and attempt to enact repairs.
@@ -139,16 +144,8 @@ export async function run(): Promise<void> {
       ratchetFrom ? ratchetFrom : undefined
     );
 
-    const suggestionsToken = core.getInput('suggestions-token');
-    if (github.context.eventName === 'pull_request' && suggestionsToken) {
-      const patchSuggestions = await suggestions.generatePatchSuggestions(
-        SORALD_JAR,
-        source,
-        repairedViolations
-      );
-      for (const ps of patchSuggestions) {
-        await suggestions.postPatchSuggestion(ps, suggestionsToken);
-      }
+    if (shouldPostReviewComments()) {
+      await postReviewComments(source, repairedViolations);
     }
 
     if (repairedViolations.length > 0) {
@@ -161,4 +158,45 @@ export async function run(): Promise<void> {
   } catch (error) {
     core.setFailed(error.message);
   }
+}
+
+function shouldPostReviewComments(): boolean {
+  return (
+    github.context.eventName === 'pull_request' &&
+    Boolean(core.getInput('post-review-comments'))
+  );
+}
+
+async function postReviewComments(
+  source: PathLike,
+  repairedViolations: string[]
+): Promise<void> {
+  const patchSuggestions = await suggestions.generatePatchSuggestions(
+    SORALD_JAR,
+    source,
+    repairedViolations
+  );
+  const commentsJSON = await suggestions.toCommentsJSON(patchSuggestions);
+  await uploadAsArtifact(commentsJSON, COMMENTS_JSON_FILENAME);
+}
+
+async function uploadAsArtifact(
+  content: string,
+  filename: string
+): Promise<void> {
+  // TODO create file in temporary directory
+  await fs.promises.writeFile(filename, content);
+
+  const artifactClient = artifact.create();
+  const artifactName = filename;
+  const rootDirectory = '.';
+  const files = [filename];
+  const options = {continueOnError: false};
+
+  await artifactClient.uploadArtifact(
+    artifactName,
+    files,
+    rootDirectory,
+    options
+  );
 }

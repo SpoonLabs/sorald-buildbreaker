@@ -43,6 +43,12 @@ const VIOLATION_2184_SUGGESTION: PatchSuggestion = {
 \`\`\``
 };
 
+const PATCH_SUGGESTIONS = [
+  VIOLATION_1118_SUGGESTION,
+  VIOLATION_1854_SUGGESTION,
+  VIOLATION_2184_SUGGESTION
+];
+
 jest.setTimeout(20 * 1000);
 
 /**
@@ -149,6 +155,23 @@ async function testGeneratePatchSuggestions(
   // assert
   expect(patchSuggestions).toEqual(expectedSuggestions);
 }
+
+test('toCommentsJSON produces JSON output containing all suggestions', async () => {
+  const jsonOutput = await suggestions.toCommentsJSON(PATCH_SUGGESTIONS);
+
+  for (const ps of PATCH_SUGGESTIONS) {
+    const encodedSuggestion = ps.suggestion.replace(/\n/g, '\\n');
+    expect(jsonOutput).toContain(encodedSuggestion);
+  }
+});
+
+test('toCommentsJSON produces JSON output containing all violation specifiers', async () => {
+  const jsonOutput = await suggestions.toCommentsJSON(PATCH_SUGGESTIONS);
+
+  for (const ps of PATCH_SUGGESTIONS) {
+    expect(jsonOutput).toContain(ps.violationSpec);
+  }
+});
 
 /**
  * Setup a Git repository with the given resources committed.

@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import {PathLike} from 'fs';
 import * as path from 'path';
-import * as github from '@actions/github';
 import got from 'got';
 
 import * as sorald from './sorald';
@@ -84,38 +83,37 @@ async function readLine(filepath: PathLike, line: number): Promise<string> {
 }
 
 /**
- * Post a pach suggestion to the current pull request, assuming the GitHub
- * context is in fact a pull request.
+ * Convert a list of patch suggestions into a comments JSON string compatible
+ * with the commenter bot.
  *
- * @param ps - A patch suggestion to post
- * @param token - Token to authenticate with the GitHub API
+ * @param patchSuggestions - Patch suggestions to turn into a comments JSON
+ * @returns A serialized JSON string with review comments
  */
-export async function postPatchSuggestion(
-  ps: PatchSuggestion,
-  token: string
-): Promise<void> {
-  const octokit = github.getOctokit(token);
-  const pull_request = github.context.payload.pull_request;
-
-  if (pull_request !== undefined) {
-    const startLine = ps.linesToReplace.start;
-    const endLine = ps.linesToReplace.end - 1;
-
-    const lineArgs =
-      endLine <= startLine
-        ? {line: startLine}
-        : {start_line: startLine, line: endLine};
-
-    await octokit.rest.pulls.createReviewComment({
-      ...github.context.repo,
-      ...lineArgs,
-      commit_id: pull_request.head.sha,
-      pull_number: pull_request.number,
-      body: await generateSuggestionMessage(ps),
-      path: ps.file.toString(),
-      start_side: 'RIGHT'
-    });
+export async function toCommentsJSON(
+  patchSuggestions: PatchSuggestion[]
+): Promise<string> {
+  const comments: object[] = [];
+  for (const ps of patchSuggestions) {
+    comments.push(await toComment(ps));
   }
+  return JSON.stringify(comments);
+}
+
+async function toComment(ps: PatchSuggestion): Promise<object> {
+  const startLine = ps.linesToReplace.start;
+  const endLine = ps.linesToReplace.end - 1;
+
+  const lineArgs =
+    endLine <= startLine
+      ? {line: startLine}
+      : {start_line: startLine, line: endLine};
+
+  return {
+    ...lineArgs,
+    body: await generateSuggestionMessage(ps),
+    start_side: 'RIGHT',
+    path: ps.file.toString()
+  };
 }
 
 /**
