@@ -118,7 +118,7 @@ export async function uploadPatchSuggestions(
     }
 
     const json = JSON.stringify(bareSuggestions);
-    const jsonFilePath = 'jsonified_suggestions.json';
+    const jsonFilePath = 'comments.json';
     await fs.promises.writeFile(jsonFilePath, json);
 
     const artifactClient = artifact.create();
