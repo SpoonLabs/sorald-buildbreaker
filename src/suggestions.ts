@@ -108,12 +108,12 @@ export async function uploadPatchSuggestions(
           ? {line: startLine}
           : {start_line: startLine, line: endLine};
 
-      const bareSuggestion = JSON.stringify({
+      const bareSuggestion = {
         ...lineArgs,
         body: await generateSuggestionMessage(ps),
         start_side: 'RIGHT',
         path: ps.file.toString()
-      });
+      };
       bareSuggestions.push(bareSuggestion);
     }
 
