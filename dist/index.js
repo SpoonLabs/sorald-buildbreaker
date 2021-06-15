@@ -410,8 +410,10 @@ exports.overlapsAny = overlapsAny;
  * @returns true if the ranges overlap
  */
 function rangesOverlap(lhs, rhs) {
-    return ((lhs.start <= rhs.start && lhs.end - 1 >= rhs.start) ||
-        (rhs.start <= lhs.start && rhs.end - 1 >= lhs.start));
+    return !rangesAreDisjoint(lhs, rhs);
+}
+function rangesAreDisjoint(lhs, rhs) {
+    return lhs.end <= rhs.start || lhs.start >= rhs.end;
 }
 //# sourceMappingURL=ranges.js.map
 
