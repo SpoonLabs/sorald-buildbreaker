@@ -28,8 +28,9 @@ export function overlapsAny(soughtRange: Range, compare: Range[]): boolean {
  * @returns true if the ranges overlap
  */
 function rangesOverlap(lhs: Range, rhs: Range): boolean {
-  return (
-    (lhs.start <= rhs.start && lhs.end - 1 >= rhs.start) ||
-    (rhs.start <= lhs.start && rhs.end - 1 >= lhs.start)
-  );
+  return !rangesAreDisjoint(lhs, rhs);
+}
+
+function rangesAreDisjoint(lhs: Range, rhs: Range): boolean {
+  return lhs.end <= rhs.start || lhs.start >= rhs.end;
 }
