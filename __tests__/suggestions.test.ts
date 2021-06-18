@@ -173,6 +173,28 @@ test('toCommentsJSON produces JSON output containing all violation specifiers', 
   }
 });
 
+test('toCommentsJSON does not include start_line when linesToReplace range is single line', async () => {
+  const singleLinePatchSuggestion = {
+    ...VIOLATION_1118_SUGGESTION
+  };
+  singleLinePatchSuggestion.linesToReplace = {start: 1, end: 2}; // note: exclusive at end
+
+  const jsonOutput = await suggestions.toCommentsJSON([singleLinePatchSuggestion]);
+
+  expect(jsonOutput).not.toContain('start_line');
+});
+
+test('toCommentsJSON includes start_line when linesToReplace range is multiple lines', async () => {
+  const multiLinePatchSuggestion = {
+    ...VIOLATION_1118_SUGGESTION
+  };
+  multiLinePatchSuggestion.linesToReplace = {start: 1, end: 20};
+
+  const jsonOutput = await suggestions.toCommentsJSON([multiLinePatchSuggestion]);
+
+  expect(jsonOutput).toContain('start_line');
+});
+
 /**
  * Setup a Git repository with the given resources committed.
  */
