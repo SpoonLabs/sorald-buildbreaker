@@ -8,9 +8,10 @@ inputs:
   ratchet-from:
     description: 'Commit-ish to ratchet from, typically origin/master or origin/main)'
     required: false
-  suggestions-token:
-    description: 'Token to post pull request review comments with. If provided, repairs are posted as suggestions on the pull request.'
+  post-review-comments:
+    description: 'If true and the commenter bot is installed, repairs are posted as review comments on pull requests'
     required: false
+    default: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
